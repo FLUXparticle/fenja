@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: com.ajjpj.a-foundation:a-foundation:1.0-pre19">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/ajjpj/a-foundation/a-foundation/1.0-pre19/a-foundation-1.0-pre19.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/com/ajjpj/a-foundation/a-foundation/1.0-pre19/a-foundation-1.0-pre19-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/ajjpj/a-foundation/a-foundation/1.0-pre19/a-foundation-1.0-pre19-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
