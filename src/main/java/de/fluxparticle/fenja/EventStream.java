@@ -13,6 +13,11 @@ import javafx.stage.Window;
 import javafx.util.Duration;
 import nz.sodium.*;
 
+import java.util.List;
+import java.util.stream.StreamSupport;
+
+import static java.util.stream.Collectors.toList;
+
 /**
  * Created by sreinck on 10.06.16.
  */
@@ -23,7 +28,6 @@ public class EventStream<T> {
     }
 
     public static <T extends Event> EventStream<T> streamOf(Node node, EventType<T> eventType) {
-// LOG       System.out.println("streamOf");
         StreamSink<T> sink = new StreamSink<>();
 
         node.addEventHandler(eventType, sink::send);
@@ -32,7 +36,6 @@ public class EventStream<T> {
     }
 
     public static <T extends Event> EventStream<T> streamOf(Window window, EventType<T> eventType) {
-// LOG       System.out.println("streamOf");
         StreamSink<T> sink = new StreamSink<>();
 
         window.addEventHandler(eventType, sink::send);
@@ -89,7 +92,22 @@ public class EventStream<T> {
     }
 
     public EventStream<T> multiply(EventStream<T> other) {
+        return orElse(other);
+    }
+
+    public EventStream<T> orElse(EventStream<T> other) {
         return new EventStream<>(stream.orElse(other.stream));
+    }
+
+    public EventStream<T> merge(EventStream<T> other, Lambda2<T, T, T> f) {
+        return new EventStream<>(stream.merge(other.stream, f));
+    }
+
+    public static <T> EventStream<T> merge(Iterable<EventStream<T>> streams, Lambda2<T, T, T> f) {
+        List<Stream<T>> streamList = StreamSupport.stream(streams.spliterator(), false)
+                .map(s -> s.stream)
+                .collect(toList());
+        return new EventStream<>(Stream.merge(streamList, f));
     }
 
     public Value<T> hold(T init) {
@@ -113,8 +131,6 @@ public class EventStream<T> {
 
         GroovyObject owner = (GroovyObject) outerClosure.getOwner();
         GroovyObject delegate = (GroovyObject) outerClosure.getDelegate();
-
-// LOG        System.out.println("owner: " + owner.getClass());
 
         closure.setResolveStrategy(Closure.DELEGATE_ONLY);
         closure.setDelegate(new GroovyObjectSupport() {

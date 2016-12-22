@@ -6,6 +6,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.beans.value.ObservableValueBase;
 import nz.sodium.*;
 
+import java.util.function.Function;
+
 import static nz.sodium.Cell.lift;
 
 /**
@@ -45,6 +47,10 @@ public class Value<T> extends ObservableValueBase<T> {
         return new EventStream<>(Cell.switchS(valueOfStream.cell.map(es -> es.stream)));
     }
 
+    public static <T> Value<T> switchV(Value<Value<T>> valueOfValue) {
+        return new Value<>(Cell.switchC(valueOfValue.cell.map(es -> es.cell)));
+    }
+
     final Cell<T> cell;
 
     private T value;
@@ -72,8 +78,12 @@ public class Value<T> extends ObservableValueBase<T> {
         return new EventStream<>(Operational.updates(cell));
     }
 
-    public <R> Value<R> map(Closure<R> function) {
-        return new Value<>(cell.map(function::call));
+    public <R> Value<R> map(Function<T, R> function) {
+        return new Value<>(cell.map(function::apply));
+    }
+
+    public <U, R> Value<R> combine(Value<U> other, Lambda2<T, U, R> lambda) {
+        return new ValueLifter2<T, U, R>(this, other).doCall(lambda);
     }
 
     public <U, R> Closure<Value<R>> power(Value<U> other) {
