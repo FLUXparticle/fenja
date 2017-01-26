@@ -6,8 +6,6 @@ import javafx.beans.value.ObservableValue;
 import javafx.beans.value.ObservableValueBase;
 import nz.sodium.*;
 
-import java.util.function.Function;
-
 import static nz.sodium.Cell.lift;
 
 /**
@@ -43,56 +41,93 @@ public class Value<T> extends ObservableValueBase<T> {
         return new Value<>(new Cell<>(init));
     }
 
-    public static <T> EventStream<T> switchS(Value<EventStream<T>> valueOfStream) {
-        return new EventStream<>(Cell.switchS(valueOfStream.cell.map(es -> es.stream)));
-    }
-
-    public static <T> Value<T> switchV(Value<Value<T>> valueOfValue) {
-        return new Value<>(Cell.switchC(valueOfValue.cell.map(es -> es.cell)));
-    }
-
     final Cell<T> cell;
 
     private T value;
 
     Value(Cell<T> cell) {
-// LOG        System.out.println("new Value");
         this.cell = cell;
-// LOG        cell.listen(t -> System.out.println("value(" + (t != null ? t.getClass().getSimpleName() : "") + "): " + t));
         cell.listen(t -> {
             value = t;
             fireValueChangedEvent();
         });
     }
 
+    // listen
+
+    public void listen(Handler<T> action) {
+        cell.listen(action);
+    }
+
+    // sample
+
     @Override
     public T getValue() {
         return value;
     }
 
-    public EventStream<T> values() {
-        return new EventStream<>(Operational.value(cell));
-    }
+    // updates
 
     public EventStream<T> updates() {
         return new EventStream<>(Operational.updates(cell));
     }
 
-    public <R> Value<R> map(Function<T, R> function) {
-        return new Value<>(cell.map(function::apply));
+    // values
+
+    public EventStream<T> values() {
+        return new EventStream<>(Operational.value(cell));
     }
 
-    public <U, R> Value<R> combine(Value<U> other, Lambda2<T, U, R> lambda) {
-        return new ValueLifter2<T, U, R>(this, other).doCall(lambda);
+    // map
+
+    public <R> Value<R> map(Lambda1<T, R> lambda) {
+        return new Value<>(cell.map(lambda));
     }
+
+    // lift
 
     public <U, R> Closure<Value<R>> power(Value<U> other) {
         return new ValueLifter2<>(this, other);
     }
 
-    public void listen(Handler<T> action) {
-        cell.listen(action);
+    public <U, R> Value<R> lift(Value<U> param2, Lambda2<T, U, R> lambda) {
+        return new Value<>(this.cell.lift(param2.cell, lambda));
     }
+
+    public <U, V, R> Value<R> lift(Value<U> param2, Value<V> param3, Lambda3<T, U, V, R> lambda) {
+        return new Value<>(this.cell.lift(param2.cell, param3.cell, lambda));
+    }
+
+    public <U, V, W, R> Value<R> lift(Value<U> param2, Value<V> param3, Value<W> param4, Lambda4<T, U, V, W, R> lambda) {
+        return new Value<>(this.cell.lift(param2.cell, param3.cell, param4.cell, lambda));
+    }
+
+    public <U, V, W, X, R> Value<R> lift(Value<U> param2, Value<V> param3, Value<W> param4, Value<X> param5, Lambda5<T, U, V, W, X, R> lambda) {
+        return new Value<>(this.cell.lift(param2.cell, param3.cell, param4.cell, param5.cell, lambda));
+    }
+
+    public <U, V, W, X, Y, R> Value<R> lift(Value<U> param2, Value<V> param3, Value<W> param4, Value<X> param5, Value<Y> param6, Lambda6<T, U, V, W, X, Y, R> lambda) {
+        return new Value<>(this.cell.lift(param2.cell, param3.cell, param4.cell, param5.cell, param6.cell, lambda));
+    }
+
+    // apply
+
+    public static <T, R> Value<R> apply(Value<Lambda1<T, R>> function, Value<T> value) {
+        return new Value<>(Cell.apply(function.cell, value.cell));
+    }
+
+    // switchC
+
+    public static <T> EventStream<T> switchS(Value<EventStream<T>> valueOfStream) {
+        return new EventStream<>(Cell.switchS(valueOfStream.cell.map(es -> es.stream)));
+    }
+
+    // switchS
+
+    public static <T> Value<T> switchV(Value<Value<T>> valueOfValue) {
+        return new Value<>(Cell.switchC(valueOfValue.cell.map(es -> es.cell)));
+    }
+
 
     T sample() {
         return cell.sample();
@@ -135,8 +170,101 @@ public class Value<T> extends ObservableValueBase<T> {
             this.param3 = param3;
         }
 
+        public <W> Closure<Value<R>> power(Value<W> other) {
+            return new ValueLifter4<>(param1, param2, param3, other);
+        }
+
         public Value<R> doCall(Lambda3<T, U, V, R> lambda) {
             return new Value<>(param1.cell.lift(param2.cell, param3.cell, lambda));
+        }
+
+    }
+
+    private static class ValueLifter4<T, U, V, W, R> extends Closure<Value<R>> {
+
+        private final Value<T> param1;
+
+        private final Value<U> param2;
+
+        private final Value<V> param3;
+
+        private final Value<W> param4;
+
+        ValueLifter4(Value<T> param1, Value<U> param2, Value<V> param3, Value<W> param4) {
+            super(param1);
+            this.param1 = param1;
+            this.param2 = param2;
+            this.param3 = param3;
+            this.param4 = param4;
+        }
+
+        public <X> Closure<Value<R>> power(Value<X> other) {
+            return new ValueLifter5<>(param1, param2, param3, param4, other);
+        }
+
+        public Value<R> doCall(Lambda4<T, U, V, W, R> lambda) {
+            return new Value<>(param1.cell.lift(param2.cell, param3.cell, param4.cell, lambda));
+        }
+
+    }
+
+    private static class ValueLifter5<T, U, V, W, X, R> extends Closure<Value<R>> {
+
+        private final Value<T> param1;
+
+        private final Value<U> param2;
+
+        private final Value<V> param3;
+
+        private final Value<W> param4;
+
+        private final Value<X> param5;
+
+        ValueLifter5(Value<T> param1, Value<U> param2, Value<V> param3, Value<W> param4, Value<X> param5) {
+            super(param1);
+            this.param1 = param1;
+            this.param2 = param2;
+            this.param3 = param3;
+            this.param4 = param4;
+            this.param5 = param5;
+        }
+
+        public <Y> Closure<Value<R>> power(Value<Y> other) {
+            return new ValueLifter6<>(param1, param2, param3, param4, param5, other);
+        }
+
+        public Value<R> doCall(Lambda5<T, U, V, W, X, R> lambda) {
+            return new Value<>(param1.cell.lift(param2.cell, param3.cell, param4.cell, param5.cell, lambda));
+        }
+
+    }
+
+    private static class ValueLifter6<T, U, V, W, X, Y, R> extends Closure<Value<R>> {
+
+        private final Value<T> param1;
+
+        private final Value<U> param2;
+
+        private final Value<V> param3;
+
+        private final Value<W> param4;
+
+        private final Value<X> param5;
+
+        private final Value<Y> param6;
+
+        ValueLifter6(Value<T> param1, Value<U> param2, Value<V> param3, Value<W> param4, Value<X> param5, Value<Y> param6) {
+            super(param1);
+            this.param1 = param1;
+            this.param2 = param2;
+            this.param3 = param3;
+            this.param4 = param4;
+            this.param5 = param5;
+            this.param6 = param6;
+        }
+
+        public Value<R> doCall(Lambda6<T, U, V, W, X, Y, R> lambda) {
+            return new Value<>(param1.cell.lift(param2.cell, param3.cell, param4.cell, param5.cell, param6.cell, lambda));
         }
 
     }

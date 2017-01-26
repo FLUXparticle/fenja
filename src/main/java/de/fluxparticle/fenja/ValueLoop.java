@@ -12,7 +12,6 @@ public class ValueLoop<T> extends Value<T> {
     }
 
     void loop(Value<T> value) {
-// LOG        System.out.println("loop value");
         ((CellLoop<T>) cell).loop(value.cell);
         fireValueChangedEvent();
     }

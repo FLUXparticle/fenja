@@ -11,7 +11,7 @@ public class ValueSink<T> extends Value<T> {
         super(new CellSink<>(initValue));
     }
 
-    public void send(T a) {
+    public void setValue(T a) {
         ((CellSink<T>)this.cell).send(a);
     }
 

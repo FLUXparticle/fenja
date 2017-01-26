@@ -12,7 +12,6 @@ public class EventStreamLoop<T> extends EventStream<T> {
     }
 
     void loop(EventStream<T> eventStream) {
-// LOG        System.out.println("loop stream");
         ((StreamLoop<T>) stream).loop(eventStream.stream);
     }
 
