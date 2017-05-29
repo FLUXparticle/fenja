@@ -7,11 +7,11 @@ import nz.sodium.CellLoop;
  */
 public class ValueLoop<T> extends Value<T> {
 
-    ValueLoop() {
+    public ValueLoop() {
         super(new CellLoop<>());
     }
 
-    void loop(Value<T> value) {
+    public void loop(Value<T> value) {
         ((CellLoop<T>) cell).loop(value.cell);
         fireValueChangedEvent();
     }

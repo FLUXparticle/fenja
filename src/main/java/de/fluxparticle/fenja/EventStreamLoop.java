@@ -7,11 +7,11 @@ import nz.sodium.StreamLoop;
  */
 public class EventStreamLoop<T> extends EventStream<T> {
 
-    EventStreamLoop() {
+    public EventStreamLoop() {
         super(new StreamLoop<>());
     }
 
-    void loop(EventStream<T> eventStream) {
+    public void loop(EventStream<T> eventStream) {
         ((StreamLoop<T>) stream).loop(eventStream.stream);
     }
 
