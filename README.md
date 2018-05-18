@@ -1,2 +1,2 @@
 # fenja
-Groovy wrapper for [SodiumFRP](https://github.com/SodiumFRP/sodium)
+Kotlin implementation of Functional Reactive Programming (FRP)
