@@ -3,7 +3,7 @@ package de.fluxparticle.fenja.value
 /**
  * Created by sreinck on 07.07.18.
  */
-abstract class ForwardValue<T : Any> : ReadWriteValue<T> {
+abstract class ForwardValue<T : Any> : ReadWriteValue<T>() {
 
     private lateinit var source: T
 

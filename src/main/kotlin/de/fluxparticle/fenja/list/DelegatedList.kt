@@ -21,8 +21,4 @@ class DelegatedList<T>(private val delegate: MutableList<T>) : ReadWriteList<T>(
         delegate.removeAt(index)
     }
 
-    override fun toString(): String {
-        return delegate.toString()
-    }
-
 }

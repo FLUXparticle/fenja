@@ -5,13 +5,13 @@ package de.fluxparticle.fenja.list
  */
 class LoopList<T> : ReadWriteList<T>() {
 
-    private var loop : ReadWriteList<T>
+    private var loop: ReadWriteList<T>
 
     init {
         loop = DelegatedList(mutableListOf())
     }
 
-    fun loop(list : ReadWriteList<T>) {
+    fun loop(list: ReadWriteList<T>) {
         list.clear()
         loop.forEachIndexed { index, element -> list.add(index, element) }
         loop = list

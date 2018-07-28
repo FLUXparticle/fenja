@@ -15,4 +15,8 @@ abstract class ReadWriteList<T> : AbstractWriteList<T>(), ReadList<T> {
 
     }
 
+    override fun toString(): String {
+        return toList().toString()
+    }
+
 }
