@@ -5,7 +5,9 @@ package de.fluxparticle.fenja.value
  */
 class LoopValue<T : Any> : ReadWriteValue<T>() {
 
-    private var loop : ReadWriteValue<T> = SimpleValue()
+    private var loop: ReadWriteValue<T> = SimpleValue()
+
+    private var closed: Boolean = false
 
     override var value: T
         get() = loop.value
@@ -14,6 +16,9 @@ class LoopValue<T : Any> : ReadWriteValue<T>() {
         }
 
     fun loop(value: ReadWriteValue<T>) {
+        if (closed) throw IllegalStateException("Loop already closed")
+        closed = true
+
         value.value = loop.value
         loop = value
     }
