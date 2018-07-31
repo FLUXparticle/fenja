@@ -110,6 +110,16 @@
         <commons-beanutils.version>1.9.2</commons-beanutils.version>
     </properties>
 
+    <repositories>
+
+        <repository>
+            <id>spring-plugins-repo</id>
+            <name>Spring Plugins Repository</name>
+            <url>http://repo.spring.io/plugins-release/</url>
+        </repository>
+
+    </repositories>
+
     <distributionManagement>
         <snapshotRepository>
             <id>fluxrepository</id>
@@ -213,6 +223,20 @@
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
             <version>${commons-beanutils.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.amshove.kluent</groupId>
+            <artifactId>kluent</artifactId>
+            <version>1.38</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
