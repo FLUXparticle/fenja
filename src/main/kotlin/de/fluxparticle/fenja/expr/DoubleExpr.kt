@@ -124,17 +124,3 @@ class DivExpr(private val left: Expr<Double>, private val right: Expr<Double>) :
     }
 
 }
-
-/*
-class MinExpr(val arguments: LoopList<Double>) : Expr<Double>() {
-    override fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R {
-        return visitor.visitPlusExpr(left, right, data)
-    }
-}
-
-class MaxExpr(val arguments: LoopList<Double>) : Expr<Double>() {
-    override fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R {
-        return visitor.visitPlusExpr(left, right, data)
-    }
-}
-*/

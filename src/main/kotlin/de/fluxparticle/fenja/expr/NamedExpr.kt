@@ -10,7 +10,7 @@ import javafx.beans.value.ObservableValue
  */
 abstract class NamedExpr<T>(val name: String) : Expr<T>() {
 
-    internal val property: ObjectProperty<T> = SimpleObjectProperty()
+    internal open val property: ObjectProperty<T> = SimpleObjectProperty()
 
     open var value: T
         get() = property.value
@@ -52,7 +52,10 @@ class InputExpr<T>(name: String) : NamedExpr<T>(name) {
 
 class OutputExpr<T>(name: String) : NamedExpr<T>(name) {
 
-    internal var rule: Expr<T>? = null
+    public override val property: ObjectProperty<T>
+        get() = super.property
+
+    var rule: Expr<T>? = null
 
     fun update() {
         value = rule!!.eval()

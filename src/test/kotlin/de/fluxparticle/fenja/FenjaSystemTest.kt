@@ -1,9 +1,11 @@
 package de.fluxparticle.fenja
 
+import de.fluxparticle.fenja.expr.ConstExpr
 import de.fluxparticle.fenja.expr.Expr
 import de.fluxparticle.fenja.expr.InputExpr
 import de.fluxparticle.fenja.expr.times
 import org.amshove.kluent.shouldEqual
+import org.junit.Ignore
 import org.junit.Test
 import java.lang.RuntimeException
 
@@ -35,6 +37,16 @@ class FenjaSystemTest {
         c.eval() shouldEqual 49.0
 
         b.value = 6.0
+
+        c.eval() shouldEqual 42.0
+    }
+
+    @Test
+    @Ignore
+    fun const() {
+        c = ConstExpr(42.0)
+
+        system.finish()
 
         c.eval() shouldEqual 42.0
     }

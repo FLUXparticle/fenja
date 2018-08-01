@@ -1,16 +1,36 @@
 package de.fluxparticle.fenja.expr
 
-import de.fluxparticle.fenja.list.LoopList
-
 /**
  * Created by sreinck on 31.07.18.
  */
-class ListExpr<T> {
+class MinExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
 
-    val elements: LoopList<T> = LoopList()
+    override fun eval(): Double {
+        return arguments.map { it.eval() }.min() ?: 0.0
+    }
+
+    override fun toString(): String {
+        return "min ${arguments.toList()}"
+    }
+
+    override fun <R> accept(visitor: ExprVisitor<R>): R {
+        return visitor.visit(this, *arguments.toList().toTypedArray())
+    }
 
 }
 
-//fun ListExpr<Double>.min() = MinExpr(elements)
+class MaxExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
 
-//fun ListExpr<Double>.max() = MaxExpr(elements)
+    override fun eval(): Double {
+        return arguments.map { it.eval() }.max() ?: 0.0
+    }
+
+    override fun toString(): String {
+        return "max ${arguments.toList()}"
+    }
+
+    override fun <R> accept(visitor: ExprVisitor<R>): R {
+        return visitor.visit(this, *arguments.toList().toTypedArray())
+    }
+
+}
