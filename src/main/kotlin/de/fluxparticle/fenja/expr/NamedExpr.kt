@@ -1,5 +1,6 @@
 package de.fluxparticle.fenja.expr
 
+import de.fluxparticle.fenja.logger.FenjaSystemLogger
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.Property
 import javafx.beans.property.SimpleObjectProperty
@@ -24,7 +25,7 @@ abstract class NamedExpr<T>(val name: String) : Expr<T>() {
 
 }
 
-class InputExpr<T>(name: String) : NamedExpr<T>(name) {
+class InputExpr<T>(name: String, private val logger: FenjaSystemLogger) : NamedExpr<T>(name) {
 
     var outputExpressions: List<OutputExpr<*>>? = null
 
@@ -32,6 +33,7 @@ class InputExpr<T>(name: String) : NamedExpr<T>(name) {
         get() = super.value
         set(value) {
             super.value = value
+            logger.updateVariable(this)
             outputExpressions?.forEach { it.update() }
         }
 
@@ -50,7 +52,7 @@ class InputExpr<T>(name: String) : NamedExpr<T>(name) {
 
 }
 
-class OutputExpr<T>(name: String) : NamedExpr<T>(name) {
+class OutputExpr<T>(name: String, private val logger: FenjaSystemLogger) : NamedExpr<T>(name) {
 
     public override val property: ObjectProperty<T>
         get() = super.property
@@ -59,10 +61,11 @@ class OutputExpr<T>(name: String) : NamedExpr<T>(name) {
 
     fun update() {
         value = rule!!.eval()
+        logger.evaluateRule(this)
     }
 
     override fun toString(): String {
-        return rule?.toString() ?: name
+        return name
     }
 
     override fun <R> accept(visitor: ExprVisitor<R>): R {

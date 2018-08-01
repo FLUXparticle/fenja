@@ -22,43 +22,46 @@ class ExprTest {
     @Test
     fun simple() {
         r = a * b
-        r.toString() shouldBeEqualTo "a * b"
+        ruleToString(r) shouldBeEqualTo "a * b"
     }
+
+    private fun ruleToString(expr: Expr<Double>) =
+            (expr as OutputExpr<Double>).rule.toString()
 
     @Test
     fun parentheses() {
         r = a * (b + c)
-        r.toString() shouldBeEqualTo "a * (b + c)"
+        ruleToString(r) shouldBeEqualTo "a * (b + c)"
     }
 
     @Test
     fun minus() {
         r = a + b - (c + a)
-        r.toString() shouldBeEqualTo "a + b - (c + a)"
+        ruleToString(r) shouldBeEqualTo "a + b - (c + a)"
     }
 
     @Test
     fun minusFactor() {
         r = a + (b - c) * a
-        r.toString() shouldBeEqualTo "a + (b - c) * a"
+        ruleToString(r) shouldBeEqualTo "a + (b - c) * a"
     }
 
     @Test
     fun map() {
         r = a { it + 2 }
-        r.toString() shouldBeEqualTo "a {}"
+        ruleToString(r) shouldBeEqualTo "a {}"
     }
 
     @Test
     fun combine2() {
         r = (a..b) { a, b -> a + b }
-        r.toString() shouldBeEqualTo "(a..b) {}"
+        ruleToString(r) shouldBeEqualTo "(a..b) {}"
     }
 
     @Test
     fun combine3() {
         r = (a..b..c) { a, b, c -> a + b + c }
-        r.toString() shouldBeEqualTo "(a..b..c) {}"
+        ruleToString(r) shouldBeEqualTo "(a..b..c) {}"
     }
 
     /*

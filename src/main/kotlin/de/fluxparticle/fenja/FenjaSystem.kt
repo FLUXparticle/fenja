@@ -1,6 +1,8 @@
 package de.fluxparticle.fenja
 
 import de.fluxparticle.fenja.expr.*
+import de.fluxparticle.fenja.logger.FenjaSystemLogger
+import de.fluxparticle.fenja.logger.SilentFenjaSystemLogger
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.properties.ReadOnlyProperty
@@ -10,7 +12,7 @@ import kotlin.reflect.KProperty
 /**
  * Created by sreinck on 31.07.18.
  */
-class FenjaSystem {
+class FenjaSystem(private val logger: FenjaSystemLogger = SilentFenjaSystemLogger()) {
 
     private val names = HashSet<String>()
 
@@ -25,7 +27,7 @@ class FenjaSystem {
     fun <T> createInputExpr(name: String): InputExpr<T> {
         checkNotFinished()
         checkName(name)
-        val variable = InputExpr<T>(name)
+        val variable = InputExpr<T>(name, logger)
         inputExpressions[name] = variable
         return variable
     }
@@ -33,18 +35,23 @@ class FenjaSystem {
     fun <T> createOutputExpr(name: String): OutputExpr<T> {
         checkNotFinished()
         checkName(name)
-        val variable = OutputExpr<T>(name)
+        val variable = OutputExpr<T>(name, logger)
         outputExpressions[name] = variable
         return variable
     }
 
     fun finish() {
+        checkNotFinished()
+
         // TODO cycle detection
+
         outputExpressions.forEach { _, expr ->
             (expr.rule ?: throw RuntimeException("variable " + expr.name + " does not have a rule"))
                     .accept(NamedExprExtractor())
                     .forEach { factor -> updates.getOrPut(factor.name) { ArrayList() }.add(expr.name) }
         }
+
+        logger.ruleLists("updates", updates);
 
         inputExpressions.forEach { _ , expr ->
             expr.value ?: throw RuntimeException("variable " + expr.name + " does not have a value")
