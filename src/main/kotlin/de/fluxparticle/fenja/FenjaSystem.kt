@@ -39,6 +39,7 @@ class FenjaSystem {
     }
 
     fun finish() {
+        // TODO cycle detection
         outputExpressions.forEach { _, expr ->
             (expr.rule ?: throw RuntimeException("variable " + expr.name + " does not have a rule"))
                     .accept(NamedExprExtractor())
@@ -50,10 +51,9 @@ class FenjaSystem {
             expr.outputExpressions = TopologicalSorting().sort(expr).result
         }
 
-        val result = inputExpressions
+        inputExpressions
                 .values.fold(TopologicalSorting(), TopologicalSorting::sort)
-                .result
-        result.forEach { it.update() }
+                .result.forEach { it.update() }
 
         finished = true
     }

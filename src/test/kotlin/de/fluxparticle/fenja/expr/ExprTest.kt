@@ -17,42 +17,48 @@ class ExprTest {
 
     private var c: Expr<Double> by system.OutputExprDelegate()
 
-    private var d: Expr<Double> by system.OutputExprDelegate()
+    private var r: Expr<Double> by system.OutputExprDelegate()
 
     @Test
     fun simple() {
-        c = a * b
-        c.toString() shouldBeEqualTo "a * b"
+        r = a * b
+        r.toString() shouldBeEqualTo "a * b"
     }
 
     @Test
     fun parentheses() {
-        d = a * (b + c)
-        d.toString() shouldBeEqualTo "a * (b + c)"
+        r = a * (b + c)
+        r.toString() shouldBeEqualTo "a * (b + c)"
     }
 
     @Test
     fun minus() {
-        d = a + b - (c + a)
-        d.toString() shouldBeEqualTo "a + b - (c + a)"
+        r = a + b - (c + a)
+        r.toString() shouldBeEqualTo "a + b - (c + a)"
     }
 
     @Test
     fun minusFactor() {
-        d = a + (b - c) * a
-        d.toString() shouldBeEqualTo "a + (b - c) * a"
+        r = a + (b - c) * a
+        r.toString() shouldBeEqualTo "a + (b - c) * a"
     }
 
     @Test
     fun map() {
-        b = a { it + 2 }
-        b.toString() shouldBeEqualTo "a {}"
+        r = a { it + 2 }
+        r.toString() shouldBeEqualTo "a {}"
     }
 
     @Test
-    fun combine() {
-        c = (a..b) { u, v -> u + v }
-        c.toString() shouldBeEqualTo "(a..b) {}"
+    fun combine2() {
+        r = (a..b) { a, b -> a + b }
+        r.toString() shouldBeEqualTo "(a..b) {}"
+    }
+
+    @Test
+    fun combine3() {
+        r = (a..b..c) { a, b, c -> a + b + c }
+        r.toString() shouldBeEqualTo "(a..b..c) {}"
     }
 
     /*

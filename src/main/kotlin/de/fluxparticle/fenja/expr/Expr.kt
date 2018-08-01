@@ -7,7 +7,7 @@ abstract class Expr<T> {
 
     operator fun <R> invoke(func: (T) -> R) : Expr<R> = MapExpr(this, func)
 
-    operator fun <S> rangeTo(other: Expr<S>) : CombineExprBuilder<T, S> = CombineExprBuilder(this, other)
+    operator fun <S> rangeTo(other: Expr<S>) = CombineExprBuilder2(this, other)
 
     abstract fun eval(): T
 
@@ -55,30 +55,78 @@ class MapExpr<T, R>(private val argument: Expr<T>, private val func: (T) -> R) :
 
 }
 
-class CombineExpr<T, S, R>(private val left: Expr<T>, private val right: Expr<S>, private val func: (T, S) -> R) : Expr<R>() {
+class CombineExpr2<A, B, R>(
+        private val paramA: Expr<A>,
+        private val paramB: Expr<B>,
+        private val func: (A, B) -> R
+) : Expr<R>() {
 
     override fun eval(): R {
-        val leftResult = left.eval()
-        val rightResult = right.eval()
-        return func.invoke(leftResult, rightResult)
+        val resultA = paramA.eval()
+        val resultB = paramB.eval()
+        return func.invoke(resultA, resultB)
     }
 
     override fun asFactor(): String = "(${toString()})"
 
     override fun toString(): String {
-        val leftResult = left.asFactor()
-        val rightResult = right.asFactor()
-        return "($leftResult..$rightResult) {}"
+        val resultA = paramA.asFactor()
+        val resultB = paramB.asFactor()
+        return "($resultA..$resultB) {}"
     }
 
     override fun <R> accept(visitor: ExprVisitor<R>): R {
-        return visitor.visit(this, left, right)
+        return visitor.visit(this, paramA, paramB)
     }
 
 }
 
-class CombineExprBuilder<T, S>(private val left: Expr<T>, private val right: Expr<S>) {
+class CombineExprBuilder2<A, B>(
+        private val paramA: Expr<A>,
+        private val paramB: Expr<B>
+) {
 
-    operator fun <R> invoke(func: (T, S) -> R) : Expr<R> = CombineExpr(left, right, func)
+    operator fun <R> invoke(func: (A, B) -> R) : Expr<R> = CombineExpr2(paramA, paramB, func)
+
+    operator fun <C> rangeTo(next: Expr<C>) = CombineExprBuilder3(paramA, paramB, next)
+
+}
+
+class CombineExpr3<A, B, C, R>(
+        private val paramA: Expr<A>,
+        private val paramB: Expr<B>,
+        private val paramC: Expr<C>,
+        private val func: (A, B, C) -> R
+) : Expr<R>() {
+
+    override fun eval(): R {
+        val resultA = paramA.eval()
+        val resultB = paramB.eval()
+        val resultC = paramC.eval()
+        return func.invoke(resultA, resultB, resultC)
+    }
+
+    override fun asFactor(): String = "(${toString()})"
+
+    override fun toString(): String {
+        val resultA = paramA.asFactor()
+        val resultB = paramB.asFactor()
+        val resultC = paramC.asFactor()
+        return "($resultA..$resultB..$resultC) {}"
+    }
+
+    override fun <R> accept(visitor: ExprVisitor<R>): R {
+        return visitor.visit(this, paramA, paramB, paramC)
+    }
+
+}
+
+class CombineExprBuilder3<A, B, C>(
+        private val paramA: Expr<A>,
+        private val paramB: Expr<B>,
+        private val paramC: Expr<C>
+) {
+
+    operator fun <R> invoke(func: (A, B, C) -> R) : Expr<R> = CombineExpr3(paramA, paramB, paramC, func)
 
 }
