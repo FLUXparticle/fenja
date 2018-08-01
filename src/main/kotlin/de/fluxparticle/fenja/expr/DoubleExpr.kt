@@ -3,15 +3,6 @@ package de.fluxparticle.fenja.expr
 /**
  * Created by sreinck on 31.07.18.
  */
-abstract class DoubleExpr : Expr<Double>() {
-    
-    override fun <R, D> accept(visitor: ExprVisitor<Double, R, D>, data: D): R {
-        return accept(visitor as DoubleExprVisitor<R, D>, data)
-    }
-
-    abstract fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R
-
-}
 
 operator fun Expr<Double>.unaryMinus() = NegateExpr(this)
 
@@ -32,44 +23,116 @@ operator fun Expr<Double>.div(other: Expr<Double>) = DivExpr(this, other)
 operator fun Expr<Double>.div(other: Double) = div(ConstExpr(other))
 
 
-class NegateExpr(val argument: Expr<Double>) : DoubleExpr() {
-    override fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R {
-        return visitor.visitNegateExpr(argument, data)
+class NegateExpr(private val argument: Expr<Double>) : Expr<Double>() {
+
+    override fun eval(): Double {
+        val argumentResult = argument.eval()
+        return -argumentResult
     }
+
+    override fun toString(): String {
+        val argumentResult = argument.asFactor()
+        return "-$argumentResult"
+    }
+
+    override fun <R> accept(visitor: ExprVisitor<R>): R {
+        return visitor.visit(this, argument)
+    }
+
 }
 
-class PlusExpr(val left: Expr<Double>, val right: Expr<Double>) : DoubleExpr() {
-    override fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R {
-        return visitor.visitPlusExpr(left, right, data)
+class PlusExpr(private val left: Expr<Double>, private val right: Expr<Double>) : Expr<Double>() {
+
+    override fun asFactor(): String = "(${toString()})"
+
+    override fun eval(): Double {
+        val leftResult = left.eval()
+        val rightResult = right.eval()
+        return leftResult + rightResult
     }
+
+    override fun toString(): String {
+        val leftResult = left.toString()
+        val rightResult = right.toString()
+        return "$leftResult + $rightResult"
+    }
+
+    override fun <R> accept(visitor: ExprVisitor<R>): R {
+        return visitor.visit(this, left, right)
+    }
+
 }
 
-class MinusExpr(val left: Expr<Double>, val right: Expr<Double>) : DoubleExpr() {
-    override fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R {
-        return visitor.visitMinusExpr(left, right, data)
+class MinusExpr(private val left: Expr<Double>, private val right: Expr<Double>) : Expr<Double>() {
+
+    override fun asFactor(): String = "(${toString()})"
+
+    override fun eval(): Double {
+        val leftResult = left.eval()
+        val rightResult = right.eval()
+        return leftResult - rightResult
     }
+
+    override fun toString(): String {
+        val leftResult = left.toString()
+        val rightResult = right.asFactor()
+        return "$leftResult - $rightResult"
+    }
+
+    override fun <R> accept(visitor: ExprVisitor<R>): R {
+        return visitor.visit(this, left, right)
+    }
+
 }
 
-class TimesExpr(val left: Expr<Double>, val right: Expr<Double>) : DoubleExpr() {
-    override fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R {
-        return visitor.visitTimesExpr(left, right, data)
+class TimesExpr(private val left: Expr<Double>, private val right: Expr<Double>) : Expr<Double>() {
+
+    override fun eval(): Double {
+        val leftResult = left.eval()
+        val rightResult = right.eval()
+        return leftResult * rightResult
     }
+
+    override fun toString(): String {
+        val leftResult = left.asFactor()
+        val rightResult = right.asFactor()
+        return "$leftResult * $rightResult"
+    }
+
+    override fun <R> accept(visitor: ExprVisitor<R>): R {
+        return visitor.visit(this, left, right)
+    }
+
 }
 
-class DivExpr(val left: Expr<Double>, val right: Expr<Double>) : DoubleExpr() {
-    override fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R {
-        return visitor.visitDivExpr(left, right, data)
+class DivExpr(private val left: Expr<Double>, private val right: Expr<Double>) : Expr<Double>() {
+
+    override fun eval(): Double {
+        val leftResult = left.eval()
+        val rightResult = right.eval()
+        return leftResult / rightResult
     }
+
+    override fun toString(): String {
+        val leftResult = left.asFactor()
+        val rightResult = right.asFactor()
+        return "$leftResult / $rightResult"
+    }
+
+    override fun <R> accept(visitor: ExprVisitor<R>): R {
+        return visitor.visit(this, left, right)
+    }
+
 }
 
 /*
-class MinExpr(val arguments: LoopList<Double>) : DoubleExpr() {
+class MinExpr(val arguments: LoopList<Double>) : Expr<Double>() {
     override fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R {
         return visitor.visitPlusExpr(left, right, data)
     }
 }
 
-class MaxExpr(val arguments: LoopList<Double>) : DoubleExpr() {
+class MaxExpr(val arguments: LoopList<Double>) : Expr<Double>() {
     override fun <R, D> accept(visitor: DoubleExprVisitor<R, D>, data: D): R {
         return visitor.visitPlusExpr(left, right, data)
     }
