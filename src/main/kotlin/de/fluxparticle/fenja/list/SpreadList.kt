@@ -3,7 +3,7 @@ package de.fluxparticle.fenja.list
 /**
  * Created by sreinck on 07.07.18.
  */
-class SpreadList<T>(private vararg val destinations : ReadWriteList<T>) : ForwardList<T>() {
+class SpreadList<T>(private vararg val destinations : WriteList<T>) : ForwardList<T>() {
 
     override fun addForward(index: Int, element: T) {
         destinations.forEach { dest ->

@@ -21,7 +21,3 @@ class TransformerTest {
     }
 
 }
-
-private fun <T> Sequence<T>.message(): String {
-    return asIterable().message()
-}

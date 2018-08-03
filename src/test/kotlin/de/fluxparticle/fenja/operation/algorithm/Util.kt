@@ -13,6 +13,10 @@ internal fun remove(oldValue: String): ListOperation<String> = ListRemoveOperati
 
 internal fun retain(count: Int): ListOperation<String> = ListRetainOperation(count)
 
+fun <T> Sequence<T>.message(): String {
+    return asIterable().message()
+}
+
 internal fun <T> Iterable<T>.message(): String {
     val sb = StringBuilder("[")
 

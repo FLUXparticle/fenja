@@ -3,7 +3,17 @@ package de.fluxparticle.fenja.list
 /**
  * Created by sreinck on 06.07.18.
  */
-abstract class ReadWriteList<T> : AbstractWriteList<T>(), ReadList<T> {
+abstract class ReadWriteList<T> : WriteList<T>, ReadList<T> {
+
+    fun add(element: T) {
+        add(size(), element)
+    }
+
+    final override fun clear() {
+        (0 until size()).reversed().forEach { idx ->
+            removeAt(idx)
+        }
+    }
 
     override fun iterator(): Iterator<T> = object : Iterator<T> {
 
