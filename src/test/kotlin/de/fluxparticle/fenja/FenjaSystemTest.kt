@@ -5,7 +5,7 @@ import de.fluxparticle.fenja.expr.Expr
 import de.fluxparticle.fenja.expr.InputExpr
 import de.fluxparticle.fenja.expr.times
 import de.fluxparticle.fenja.logger.PrintFenjaSystemLogger
-import org.amshove.kluent.shouldEqual
+import org.junit.Assert
 import org.junit.Ignore
 import org.junit.Test
 import java.lang.RuntimeException
@@ -58,4 +58,8 @@ class FenjaSystemTest {
         system.finish()
     }
 
+}
+
+private infix fun Any.shouldEqual(expected: Any) {
+    Assert.assertEquals(expected, this)
 }

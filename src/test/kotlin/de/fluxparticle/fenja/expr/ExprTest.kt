@@ -1,7 +1,7 @@
 package de.fluxparticle.fenja.expr
 
 import de.fluxparticle.fenja.FenjaSystem
-import org.amshove.kluent.shouldBeEqualTo
+import org.junit.Assert
 import org.junit.Test
 
 /**
@@ -74,4 +74,8 @@ class ExprTest {
     }
 */
 
+}
+
+private infix fun String.shouldBeEqualTo(expected: String) {
+    Assert.assertEquals(expected, this)
 }
