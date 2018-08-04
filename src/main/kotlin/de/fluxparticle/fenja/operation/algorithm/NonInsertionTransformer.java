@@ -22,8 +22,6 @@ final class NonInsertionTransformer<T> {
      */
     private static abstract class RangeCache<T> {
 
-        abstract void resolveRetainOperation(int retain);
-
         void resolveSetOperation(T oldValue, T newValue) {
             throw new UnsupportedOperationException();
         }
@@ -31,6 +29,8 @@ final class NonInsertionTransformer<T> {
         void resolveRemoveOperation(T oldValue) {
             throw new UnsupportedOperationException();
         }
+
+        abstract void resolveRetainOperation(int retain);
 
     }
 
@@ -108,18 +108,12 @@ final class NonInsertionTransformer<T> {
      */
     private final class Target implements BuildingListOperationVisitor<T, Sequence<ListOperation<T>>, Void> {
 
-        private final class DeleteCharactersCache extends RangeCache<T> {
+        private final class RemoveOperationCache extends RangeCache<T> {
 
             private T oldValue;
 
-            DeleteCharactersCache(T oldValue) {
+            RemoveOperationCache(T oldValue) {
                 this.oldValue = oldValue;
-            }
-
-            @Override
-            void resolveRetainOperation(int itemCount) {
-                doDeleteCharacters(oldValue);
-                oldValue = null;
             }
 
             @Override
@@ -127,27 +121,33 @@ final class NonInsertionTransformer<T> {
                 this.oldValue = null;
             }
 
+            @Override
+            void resolveRetainOperation(int itemCount) {
+                targetDocument.visitRemoveOperation(oldValue, null);
+                oldValue = null;
+            }
+
         }
 
-        private final class ReplaceAttributesCache extends RangeCache<T> {
+        private final class SetOperationCache extends RangeCache<T> {
 
             private final T oldValue;
             private final T newValue;
 
-            ReplaceAttributesCache(T oldValue, T newValue) {
+            SetOperationCache(T oldValue, T newValue) {
                 this.oldValue = oldValue;
                 this.newValue = newValue;
             }
 
             @Override
-            void resolveRetainOperation(int itemCount) {
-                targetDocument.visitSetOperation(oldValue, newValue, null);
+            void resolveSetOperation(T oldValue, T newValue) {
+                targetDocument.visitSetOperation(newValue, this.newValue, null);
                 otherTarget.targetDocument.visitRetainOperation(1, null);
             }
 
             @Override
-            void resolveSetOperation(T oldValue, T newValue) {
-                targetDocument.visitSetOperation(newValue, this.newValue, null);
+            void resolveRetainOperation(int itemCount) {
+                targetDocument.visitSetOperation(oldValue, newValue, null);
                 otherTarget.targetDocument.visitRetainOperation(1, null);
             }
 
@@ -163,7 +163,7 @@ final class NonInsertionTransformer<T> {
 
             @Override
             void resolveRemoveOperation(T oldValue) {
-                otherTarget.doDeleteCharacters(oldValue);
+                otherTarget.targetDocument.visitRemoveOperation(oldValue, null);
             }
 
             @Override
@@ -228,7 +228,7 @@ final class NonInsertionTransformer<T> {
         public Unit visitRemoveOperation(T oldValue, Void data) {
             int resolutionSize = resolveRange(1, new DeleteCharactersResolver<>(oldValue));
             if (resolutionSize >= 0) {
-                rangeCache = new DeleteCharactersCache(null);
+                rangeCache = new RemoveOperationCache(oldValue);
             }
             return Unit.INSTANCE;
         }
@@ -236,7 +236,7 @@ final class NonInsertionTransformer<T> {
         @Override
         public Unit visitSetOperation(T oldValue, T newValue, Void data) {
             if (resolveRange(1, new ReplaceAttributesResolver<>(oldValue, newValue)) == 0) {
-                rangeCache = new ReplaceAttributesCache(oldValue, newValue);
+                rangeCache = new SetOperationCache(oldValue, newValue);
             }
             return Unit.INSTANCE;
         }
@@ -261,10 +261,6 @@ final class NonInsertionTransformer<T> {
                 resolver.resolve(size, otherTarget.rangeCache);
                 return -1;
             }
-        }
-
-        private void doDeleteCharacters(T oldValue) {
-            targetDocument.visitRemoveOperation(oldValue, null);
         }
 
     }

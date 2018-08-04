@@ -18,8 +18,8 @@ internal class Decomposer<T> private constructor() : BuildingListOperationVisito
     }
 
     override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
-        insertionOp.visitRetainOperation(1, data)
-        nonInsertionOp.visitSetOperation(oldValue, newValue, data)
+        visitRemoveOperation(oldValue, data)
+        visitAddOperation(newValue, data)
     }
 
     override fun visitRemoveOperation(oldValue: T, data: Void?) {

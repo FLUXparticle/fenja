@@ -92,16 +92,20 @@ class FilterTest(
         val filterOp2 = filterOp(filterOp1, predicate)
 
         val filterOp = Composer.compose(filterOp1, filterOp2)
+        println("filterOp = ${filterOp.message()}")
 
         val actual1 = Composer.compose(initFilterOp, filterOp)
+        println("actual1 = ${actual1.message()}")
         assertThat(actual1.message(), actual1.asIterable(), contains(expected))
 
         val newInitOp = Composer.compose(initOp, op)
+        println("newInitOp = ${newInitOp.message()}")
         assertThat(newInitOp.message(), newInitOp.asIterable(), contains(mutableList))
 
-        val diffOp3 = Composer.compose(diffOp2, filterOp2)
+        println("diffOp2 = ${diffOp2.message()}")
+        println("filterOp2 = ${filterOp2.message()}")
 
-        println("newInitOp = ${newInitOp.message()}")
+        val diffOp3 = Composer.compose(diffOp2, filterOp2)
         println("diffOp3 = ${diffOp3.message()}")
 
         val actual2 = Composer.compose(newInitOp, diffOp3)

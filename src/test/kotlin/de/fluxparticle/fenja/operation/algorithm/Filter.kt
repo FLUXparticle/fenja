@@ -19,12 +19,11 @@ class Filter<T>(private val predicate: (T) -> Boolean) : BuildingListOperationVi
     }
 
     override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
-        throw UnsupportedOperationException()
-//        if (predicate.invoke(newValue)) {
-//            builder.visitRetainOperation(1, data)
-//        } else {
-//            builder.visitRemoveOperation(newValue, data)
-//        }
+        if (predicate.invoke(newValue)) {
+            builder.visitRetainOperation(1, data)
+        } else {
+            builder.visitRemoveOperation(newValue, data)
+        }
     }
 
     override fun visitRemoveOperation(oldValue: T, data: Void?) {

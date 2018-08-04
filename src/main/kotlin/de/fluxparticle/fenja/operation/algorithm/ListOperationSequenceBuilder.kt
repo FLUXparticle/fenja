@@ -4,38 +4,84 @@ import de.fluxparticle.fenja.operation.*
 
 class ListOperationSequenceBuilder<T> : BuildingListOperationVisitor<T, Sequence<ListOperation<T>>, Void?> {
 
-    private val result = mutableListOf<ListOperation<T>>()
+    private abstract inner class Cache {
 
-    private var retain: Int = 0
-
-    private fun flush() {
-        if (retain > 0) {
-            result.add(ListRetainOperation(retain))
-            retain = 0
+        open fun add(value: T) {
+            flush()
+            result.add(ListAddOperation(value))
+            cache = emptyCache
         }
+
+        fun remove(oldValue : T) {
+            flush()
+            cache = RemoveOperationCache(oldValue)
+        }
+
+        open fun retain(count: Int) {
+            flush()
+            cache = RetainOperationCache(count)
+        }
+
+        abstract fun flush()
+
     }
 
+    private val emptyCache: Cache = object : Cache() {
+
+        override fun flush() {}
+
+    }
+
+    private inner class RetainOperationCache(private var distance: Int) : Cache() {
+
+        override fun retain(count: Int) {
+            this.distance += count
+        }
+
+        override fun flush() {
+            result.add(ListRetainOperation(distance))
+            cache = emptyCache
+        }
+
+    }
+
+    private inner class RemoveOperationCache(private val oldValue : T) : Cache() {
+
+        override fun add(value: T) {
+            result.add(ListSetOperation(oldValue, value))
+            cache = emptyCache
+        }
+
+        override fun flush() {
+            result.add(ListRemoveOperation(oldValue))
+            cache = emptyCache
+        }
+
+    }
+
+    private var cache = emptyCache
+
+    private val result = mutableListOf<ListOperation<T>>()
+
     override fun visitAddOperation(value: T, data: Void?) {
-        flush()
-        result.add(ListAddOperation(value))
+        cache.add(value)
     }
 
     override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
-        flush()
+        cache.flush()
         result.add(ListSetOperation(oldValue, newValue))
     }
 
     override fun visitRemoveOperation(oldValue: T, data: Void?) {
-        flush()
-        result.add(ListRemoveOperation(oldValue))
+        cache.remove(oldValue)
     }
 
     override fun visitRetainOperation(count: Int, data: Void?) {
-        retain += count
+        cache.retain(count)
     }
 
     override fun build(): Sequence<ListOperation<T>> {
-        flush()
+        cache.flush()
         return result.asSequence()
     }
 

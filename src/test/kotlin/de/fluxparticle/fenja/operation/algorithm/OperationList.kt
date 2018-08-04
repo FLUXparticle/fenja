@@ -1,10 +1,7 @@
 package de.fluxparticle.fenja.operation.algorithm
 
 import de.fluxparticle.fenja.list.ForwardList
-import de.fluxparticle.fenja.operation.ListAddOperation
-import de.fluxparticle.fenja.operation.ListOperation
-import de.fluxparticle.fenja.operation.ListRemoveOperation
-import de.fluxparticle.fenja.operation.ListRetainOperation
+import de.fluxparticle.fenja.operation.*
 
 /**
  * Created by sreinck on 03.08.18.
@@ -31,8 +28,9 @@ class OperationList<T>(source: MutableList<T>, private val func: (Sequence<ListO
         if (index > 0) {
             list.add(ListRetainOperation(index))
         }
-        list.add(ListRemoveOperation(get(index)))
-        list.add(ListAddOperation(element))
+//        list.add(ListRemoveOperation(get(index)))
+//        list.add(ListAddOperation(element))
+        list.add(ListSetOperation(get(index), element))
         if (index < size() - 1) {
             list.add(ListRetainOperation(size() - 1 - index))
         }
