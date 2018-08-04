@@ -1,35 +1,35 @@
 package de.fluxparticle.fenja.operation.algorithm
 
-import de.fluxparticle.fenja.operation.BuildingListOperationVisitor
+import de.fluxparticle.fenja.operation.BuildingListOperationHandler
 import de.fluxparticle.fenja.operation.ListOperation
 
 /**
  * Created by sreinck on 03.08.18.
  */
-internal class Decomposer<T> private constructor() : BuildingListOperationVisitor<T, Pair<Sequence<ListOperation<T>>, Sequence<ListOperation<T>>>, Void?> {
+internal class Decomposer<T> private constructor() : BuildingListOperationHandler<T, Pair<Sequence<ListOperation<T>>, Sequence<ListOperation<T>>>> {
 
     private val insertionOp = ListOperationSequenceBuilder<T>()
 
     private val nonInsertionOp = ListOperationSequenceBuilder<T>()
 
-    override fun visitAddOperation(value: T, data: Void?) {
-        insertionOp.visitAddOperation(value, data)
-        nonInsertionOp.visitRetainOperation(1, data)
+    override fun add(value: T) {
+        insertionOp.add(value)
+        nonInsertionOp.retain(1)
     }
 
-    override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
-        visitRemoveOperation(oldValue, data)
-        visitAddOperation(newValue, data)
+    override fun set(oldValue: T, newValue: T) {
+        remove(oldValue)
+        add(newValue)
     }
 
-    override fun visitRemoveOperation(oldValue: T, data: Void?) {
-        insertionOp.visitRetainOperation(1, data)
-        nonInsertionOp.visitRemoveOperation(oldValue, data)
+    override fun remove(oldValue: T) {
+        insertionOp.retain(1)
+        nonInsertionOp.remove(oldValue)
     }
 
-    override fun visitRetainOperation(count: Int, data: Void?) {
-        insertionOp.visitRetainOperation(count, data)
-        nonInsertionOp.visitRetainOperation(count, data)
+    override fun retain(count: Int) {
+        insertionOp.retain(count)
+        nonInsertionOp.retain(count)
     }
 
     override fun build(): Pair<Sequence<ListOperation<T>>, Sequence<ListOperation<T>>> {
@@ -40,7 +40,7 @@ internal class Decomposer<T> private constructor() : BuildingListOperationVisito
 
         fun <T> decompose(op: Sequence<ListOperation<T>>): Pair<Sequence<ListOperation<T>>, Sequence<ListOperation<T>>> {
             val decomposer = Decomposer<T>()
-            op.forEach { it.accept(decomposer, null) }
+            op.forEach { it.apply(decomposer) }
 
             return decomposer.build()
         }

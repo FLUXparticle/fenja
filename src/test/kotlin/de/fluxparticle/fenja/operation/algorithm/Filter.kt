@@ -1,37 +1,37 @@
 package de.fluxparticle.fenja.operation.algorithm
 
-import de.fluxparticle.fenja.operation.BuildingListOperationVisitor
+import de.fluxparticle.fenja.operation.BuildingListOperationHandler
 import de.fluxparticle.fenja.operation.ListOperation
 
 /**
  * Created by sreinck on 03.08.18.
  */
-class Filter<T>(private val predicate: (T) -> Boolean) : BuildingListOperationVisitor<T, Sequence<ListOperation<T>>, Void?> {
+class Filter<T>(private val predicate: (T) -> Boolean) : BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
 
     private val builder = ListOperationSequenceBuilder<T>()
 
-    override fun visitAddOperation(value: T, data: Void?) {
+    override fun add(value: T) {
         if (predicate.invoke(value)) {
-            builder.visitRetainOperation(1, data)
+            builder.retain(1)
         } else {
-            builder.visitRemoveOperation(value, data)
+            builder.remove(value)
         }
     }
 
-    override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
+    override fun set(oldValue: T, newValue: T) {
         if (predicate.invoke(newValue)) {
-            builder.visitRetainOperation(1, data)
+            builder.retain(1)
         } else {
-            builder.visitRemoveOperation(newValue, data)
+            builder.remove(newValue)
         }
     }
 
-    override fun visitRemoveOperation(oldValue: T, data: Void?) {
+    override fun remove(oldValue: T) {
         // empty
     }
 
-    override fun visitRetainOperation(count: Int, data: Void?) {
-        builder.visitRetainOperation(count, data)
+    override fun retain(count: Int) {
+        builder.retain(count)
     }
 
     override fun build(): Sequence<ListOperation<T>> {

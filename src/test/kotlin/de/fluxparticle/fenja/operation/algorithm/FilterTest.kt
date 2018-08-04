@@ -45,13 +45,13 @@ class FilterTest(
                     val initList = list.minus(element)
                     val operation: (WriteList<String>) -> Unit = { it.add(index, element) }
                     build(initList, "add($index, $element)", operation, predicate)
-                } + list.mapIndexed { index, element ->
+                } + list.indices.map { index ->
                     val initList = list
                     val operation: (WriteList<String>) -> Unit = { it.removeAt(index) }
                     build(initList, "removeAt($index)", operation, predicate)
                 } + list.flatMap { newElement ->
                     val initList = list.minus(newElement)
-                    initList.mapIndexed { index, oldElement ->
+                    initList.indices.map { index ->
                         val operation: (WriteList<String>) -> Unit = { it.set(index, newElement) }
                         build(initList, "set($index, $newElement)", operation, predicate)
                     }
@@ -61,7 +61,7 @@ class FilterTest(
 
         fun filterOp(op: Sequence<ListOperation<String>>, predicate: (String) -> Boolean): Sequence<ListOperation<String>> {
             val filter = Filter(predicate)
-            op.forEach { it.accept(filter, null) }
+            op.forEach { it.apply(filter) }
             return filter.build()
         }
 

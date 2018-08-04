@@ -3,7 +3,7 @@ package de.fluxparticle.fenja.operation
 /**
  * Created by sreinck on 03.08.18.
  */
-interface BuildingListInitializationVisitor<T, R, D> : ListInitializationVisitor<T, Unit, D> {
+interface BuildingListInitializationHandler<T, R> : ListInitializationHandler<T> {
 
     fun build(): R
 

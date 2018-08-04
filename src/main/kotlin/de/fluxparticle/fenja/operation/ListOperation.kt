@@ -5,7 +5,7 @@ package de.fluxparticle.fenja.operation
  */
 sealed class ListOperation<T> {
 
-    abstract fun <R, D> accept(visitor: ListOperationVisitor<T, R, D>, data: D): R
+    abstract fun apply(handler: ListOperationHandler<T>)
 
     abstract override fun toString(): String
 
@@ -13,8 +13,8 @@ sealed class ListOperation<T> {
 
 data class ListSetOperation<T>(private val oldValue: T, private val newValue: T) : ListOperation<T>() {
 
-    override fun <R, D> accept(visitor: ListOperationVisitor<T, R, D>, data: D): R {
-        return visitor.visitSetOperation(oldValue, newValue, data)
+    override fun apply(handler: ListOperationHandler<T>) {
+        handler.set(oldValue, newValue)
     }
 
     override fun toString(): String = "=$newValue"
@@ -23,8 +23,8 @@ data class ListSetOperation<T>(private val oldValue: T, private val newValue: T)
 
 data class ListRemoveOperation<T>(private val oldValue: T) : ListOperation<T>() {
 
-    override fun <R, D> accept(visitor: ListOperationVisitor<T, R, D>, data: D): R {
-        return visitor.visitRemoveOperation(oldValue, data)
+    override fun apply(handler: ListOperationHandler<T>) {
+        handler.remove(oldValue)
     }
 
     override fun toString(): String = "-$oldValue"
@@ -33,28 +33,28 @@ data class ListRemoveOperation<T>(private val oldValue: T) : ListOperation<T>() 
 
 data class ListRetainOperation<T>(private val count: Int) : ListOperation<T>() {
 
-    override fun <R, D> accept(visitor: ListOperationVisitor<T, R, D>, data: D): R {
-        return visitor.visitRetainOperation(count, data)
+    override fun apply(handler: ListOperationHandler<T>) {
+        handler.retain(count)
     }
 
-    override fun toString(): String = "_x${count}"
+    override fun toString(): String = "_x$count"
 
 }
 
 sealed class ListInitialization<T> : ListOperation<T>() {
 
-    override fun <R, D> accept(visitor: ListOperationVisitor<T, R, D>, data: D): R {
-        return accept(visitor as ListInitializationVisitor<T, R, D>, data)
+    override fun apply(handler: ListOperationHandler<T>) {
+        apply(handler as ListInitializationHandler<T>)
     }
 
-    abstract fun <R, D> accept(visitor: ListInitializationVisitor<T, R, D>, data: D): R
+    abstract fun apply(handler: ListInitializationHandler<T>)
 
 }
 
 data class ListAddOperation<T>(private val value: T) : ListInitialization<T>() {
 
-    override fun <R, D> accept(visitor: ListInitializationVisitor<T, R, D>, data: D): R {
-        return visitor.visitAddOperation(value, data)
+    override fun apply(handler: ListInitializationHandler<T>) {
+        handler.add(value)
     }
 
     override fun toString(): String = "+$value"

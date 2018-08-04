@@ -1,40 +1,40 @@
 package de.fluxparticle.fenja.operation.algorithm
 
-import de.fluxparticle.fenja.operation.BuildingListOperationVisitor
+import de.fluxparticle.fenja.operation.BuildingListOperationHandler
 import de.fluxparticle.fenja.operation.ListOperation
 import de.fluxparticle.fenja.operation.algorithm.PositionTracker.RelativePosition
 
 /**
  * Created by sreinck on 03.08.18.
  */
-class InsertionTransformer<T> private constructor(val relativePosition: RelativePosition) : BuildingListOperationVisitor<T, Sequence<ListOperation<T>>, Void?> {
+class InsertionTransformer<T> private constructor(private val relativePosition: RelativePosition) : BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
 
     private lateinit var otherTransformer: InsertionTransformer<T>
 
     private val builder = ListOperationSequenceBuilder<T>()
 
-    override fun visitAddOperation(value: T, data: Void?) {
-        builder.visitAddOperation(value, data)
-        otherTransformer.builder.visitRetainOperation(1, data)
+    override fun add(value: T) {
+        builder.add(value)
+        otherTransformer.builder.retain(1)
     }
 
-    override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
+    override fun set(oldValue: T, newValue: T) {
         throw IllegalArgumentException()
     }
 
-    override fun visitRemoveOperation(oldValue: T, data: Void?) {
+    override fun remove(oldValue: T) {
         throw IllegalArgumentException()
     }
 
-    override fun visitRetainOperation(count: Int, data: Void?) {
+    override fun retain(count: Int) {
         val oldPosition = relativePosition.get()
         relativePosition.increase(count)
         if (relativePosition.get() < 0) {
-            builder.visitRetainOperation(count, data)
-            otherTransformer.builder.visitRetainOperation(count, data)
+            builder.retain(count)
+            otherTransformer.builder.retain(count)
         } else if (oldPosition < 0) {
-            builder.visitRetainOperation(-oldPosition, data)
-            otherTransformer.builder.visitRetainOperation(-oldPosition, data)
+            builder.retain(-oldPosition)
+            otherTransformer.builder.retain(-oldPosition)
         }
     }
 
@@ -59,13 +59,13 @@ class InsertionTransformer<T> private constructor(val relativePosition: Relative
             val clientIt = clientOp.iterator()
             val serverIt = serverOp.iterator()
             while (clientIt.hasNext()) {
-                clientIt.next().accept(clientVisitor, null)
+                clientIt.next().apply(clientVisitor)
                 while (clientPosition.get() > 0) {
-                    serverIt.next().accept(serverVisitor, null)
+                    serverIt.next().apply(serverVisitor)
                 }
             }
             while (serverIt.hasNext()) {
-                serverIt.next().accept(serverVisitor, null)
+                serverIt.next().apply(serverVisitor)
             }
             return Pair(clientVisitor.build(), serverVisitor.build())
         }

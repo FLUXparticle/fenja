@@ -1,10 +1,9 @@
 package de.fluxparticle.fenja.operation.algorithm;
 
-import de.fluxparticle.fenja.operation.BuildingListOperationVisitor;
+import de.fluxparticle.fenja.operation.BuildingListOperationHandler;
 import de.fluxparticle.fenja.operation.ListOperation;
 import de.fluxparticle.fenja.operation.algorithm.PositionTracker.RelativePosition;
 import kotlin.Pair;
-import kotlin.Unit;
 import kotlin.sequences.Sequence;
 
 import java.util.Iterator;
@@ -33,7 +32,7 @@ final class InsertionNonInsertionTransformer<T> {
      * help of auxiliary information from a second mutation. These targets should
      * be used in pairs.
      */
-    private static abstract class Target<T> implements BuildingListOperationVisitor<T, Sequence<ListOperation<T>>, Void> {
+    private static abstract class Target<T> implements BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
 
         /**
          * The target to which to write the transformed mutation.
@@ -74,7 +73,7 @@ final class InsertionNonInsertionTransformer<T> {
         }
 
         @Override
-        public Unit visitRetainOperation(int count, Void data) {
+        public void retain(int count) {
             int oldPosition = relativePosition.get();
             relativePosition.increase(count);
             if (relativePosition.get() < 0) {
@@ -82,23 +81,21 @@ final class InsertionNonInsertionTransformer<T> {
             } else if (oldPosition < 0) {
                 otherTarget.rangeCache.resolve(-oldPosition);
             }
-            return Unit.INSTANCE;
         }
 
         @Override
-        public Unit visitAddOperation(T value, Void data) {
-            targetDocument.visitAddOperation(value, data);
-            otherTarget.targetDocument.visitRetainOperation(1, null);
-            return Unit.INSTANCE;
+        public void add(T value) {
+            targetDocument.add(value);
+            otherTarget.targetDocument.retain(1);
         }
 
         @Override
-        public Unit visitRemoveOperation(T oldValue, Void data) {
+        public void remove(T oldValue) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Unit visitSetOperation(T oldValue, T newValue, Void data) {
+        public void set(T oldValue, T newValue) {
             throw new UnsupportedOperationException();
         }
 
@@ -116,7 +113,7 @@ final class InsertionNonInsertionTransformer<T> {
 
             @Override
             void resolve(int itemCount) {
-                targetDocument.visitRemoveOperation(oldValue, null);
+                targetDocument.remove(oldValue);
                 oldValue = null;
             }
 
@@ -134,8 +131,8 @@ final class InsertionNonInsertionTransformer<T> {
 
             @Override
             void resolve(int itemCount) {
-                targetDocument.visitSetOperation(oldAttributes, newAttributes, null);
-                otherTarget.targetDocument.visitRetainOperation(1, null);
+                targetDocument.set(oldAttributes, newAttributes);
+                otherTarget.targetDocument.retain(1);
             }
 
         }
@@ -144,8 +141,8 @@ final class InsertionNonInsertionTransformer<T> {
 
             @Override
             void resolve(int itemCount) {
-                targetDocument.visitRetainOperation(itemCount, null);
-                otherTarget.targetDocument.visitRetainOperation(itemCount, null);
+                targetDocument.retain(itemCount);
+                otherTarget.targetDocument.retain(itemCount);
             }
 
         };
@@ -166,33 +163,30 @@ final class InsertionNonInsertionTransformer<T> {
         }
 
         @Override
-        public Unit visitRetainOperation(int count, Void data) {
+        public void retain(int count) {
             resolveRange(count, retainCache);
             rangeCache = retainCache;
-            return Unit.INSTANCE;
         }
 
         @Override
-        public Unit visitAddOperation(T value, Void data) {
+        public void add(T value) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Unit visitRemoveOperation(T oldValue, Void data) {
+        public void remove(T oldValue) {
             RangeCache cache = new RemoveOperationCache(oldValue);
             if (resolveRange(1, cache) >= 0) {
                 rangeCache = cache;
             }
-            return Unit.INSTANCE;
         }
 
         @Override
-        public Unit visitSetOperation(T oldValue, T newValue, Void data) {
+        public void set(T oldValue, T newValue) {
             RangeCache cache = new SetOperationCache(oldValue, newValue);
             if (resolveRange(1, cache) == 0) {
                 rangeCache = cache;
             }
-            return Unit.INSTANCE;
         }
 
         /**
@@ -237,13 +231,13 @@ final class InsertionNonInsertionTransformer<T> {
         Iterator<ListOperation<T>> insertionIt = insertionOp.iterator();
         Iterator<ListOperation<T>> nonInsertionIt = nonInsertionOp.iterator();
         while (insertionIt.hasNext()) {
-            insertionIt.next().accept(insertionTarget, null);
+            insertionIt.next().apply(insertionTarget);
             while (insertionPosition.get() > 0) {
-                nonInsertionIt.next().accept(nonInsertionTarget, null);
+                nonInsertionIt.next().apply(nonInsertionTarget);
             }
         }
         while (nonInsertionIt.hasNext()) {
-            nonInsertionIt.next().accept(nonInsertionTarget, null);
+            nonInsertionIt.next().apply(nonInsertionTarget);
         }
         return new Pair<>(insertionTarget.build(), nonInsertionTarget.build());
     }

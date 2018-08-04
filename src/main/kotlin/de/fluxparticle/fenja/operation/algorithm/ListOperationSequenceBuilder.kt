@@ -2,7 +2,7 @@ package de.fluxparticle.fenja.operation.algorithm
 
 import de.fluxparticle.fenja.operation.*
 
-class ListOperationSequenceBuilder<T> : BuildingListOperationVisitor<T, Sequence<ListOperation<T>>, Void?> {
+class ListOperationSequenceBuilder<T> : BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
 
     private abstract inner class Cache {
 
@@ -63,20 +63,20 @@ class ListOperationSequenceBuilder<T> : BuildingListOperationVisitor<T, Sequence
 
     private val result = mutableListOf<ListOperation<T>>()
 
-    override fun visitAddOperation(value: T, data: Void?) {
+    override fun add(value: T) {
         cache.add(value)
     }
 
-    override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
+    override fun set(oldValue: T, newValue: T) {
         cache.flush()
         result.add(ListSetOperation(oldValue, newValue))
     }
 
-    override fun visitRemoveOperation(oldValue: T, data: Void?) {
+    override fun remove(oldValue: T) {
         cache.remove(oldValue)
     }
 
-    override fun visitRetainOperation(count: Int, data: Void?) {
+    override fun retain(count: Int) {
         cache.retain(count)
     }
 

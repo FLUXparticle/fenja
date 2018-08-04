@@ -1,10 +1,9 @@
 package de.fluxparticle.fenja.operation.algorithm;
 
-import de.fluxparticle.fenja.operation.BuildingListOperationVisitor;
+import de.fluxparticle.fenja.operation.BuildingListOperationHandler;
 import de.fluxparticle.fenja.operation.ListOperation;
 import de.fluxparticle.fenja.operation.algorithm.PositionTracker.RelativePosition;
 import kotlin.Pair;
-import kotlin.Unit;
 import kotlin.sequences.Sequence;
 
 import java.util.Iterator;
@@ -106,7 +105,7 @@ final class NonInsertionTransformer<T> {
      * help of auxiliary information from a second mutation. These targets should
      * be used in pairs.
      */
-    private final class Target implements BuildingListOperationVisitor<T, Sequence<ListOperation<T>>, Void> {
+    private final class Target implements BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
 
         private final class RemoveOperationCache extends RangeCache<T> {
 
@@ -123,7 +122,7 @@ final class NonInsertionTransformer<T> {
 
             @Override
             void resolveRetainOperation(int itemCount) {
-                targetDocument.visitRemoveOperation(oldValue, null);
+                targetDocument.remove(oldValue);
                 oldValue = null;
             }
 
@@ -141,14 +140,14 @@ final class NonInsertionTransformer<T> {
 
             @Override
             void resolveSetOperation(T oldValue, T newValue) {
-                targetDocument.visitSetOperation(newValue, this.newValue, null);
-                otherTarget.targetDocument.visitRetainOperation(1, null);
+                targetDocument.set(newValue, this.newValue);
+                otherTarget.targetDocument.retain(1);
             }
 
             @Override
             void resolveRetainOperation(int itemCount) {
-                targetDocument.visitSetOperation(oldValue, newValue, null);
-                otherTarget.targetDocument.visitRetainOperation(1, null);
+                targetDocument.set(oldValue, newValue);
+                otherTarget.targetDocument.retain(1);
             }
 
         }
@@ -157,19 +156,19 @@ final class NonInsertionTransformer<T> {
 
             @Override
             void resolveRetainOperation(int itemCount) {
-                targetDocument.visitRetainOperation(itemCount, null);
-                otherTarget.targetDocument.visitRetainOperation(itemCount, null);
+                targetDocument.retain(itemCount);
+                otherTarget.targetDocument.retain(itemCount);
             }
 
             @Override
             void resolveRemoveOperation(T oldValue) {
-                otherTarget.targetDocument.visitRemoveOperation(oldValue, null);
+                otherTarget.targetDocument.remove(oldValue);
             }
 
             @Override
             void resolveSetOperation(T oldValue, T newValue) {
-                targetDocument.visitRetainOperation(1, null);
-                otherTarget.targetDocument.visitSetOperation(oldValue, newValue, null);
+                targetDocument.retain(1);
+                otherTarget.targetDocument.set(oldValue, newValue);
             }
 
         };
@@ -213,32 +212,29 @@ final class NonInsertionTransformer<T> {
         }
 
         @Override
-        public Unit visitRetainOperation(int count, Void data) {
+        public void retain(int count) {
             resolveRange(count, retainResolver);
             rangeCache = retainCache;
-            return Unit.INSTANCE;
         }
 
         @Override
-        public Unit visitAddOperation(T value, Void data) {
+        public void add(T value) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Unit visitRemoveOperation(T oldValue, Void data) {
+        public void remove(T oldValue) {
             int resolutionSize = resolveRange(1, new DeleteCharactersResolver<>(oldValue));
             if (resolutionSize >= 0) {
                 rangeCache = new RemoveOperationCache(oldValue);
             }
-            return Unit.INSTANCE;
         }
 
         @Override
-        public Unit visitSetOperation(T oldValue, T newValue, Void data) {
+        public void set(T oldValue, T newValue) {
             if (resolveRange(1, new ReplaceAttributesResolver<>(oldValue, newValue)) == 0) {
                 rangeCache = new SetOperationCache(oldValue, newValue);
             }
-            return Unit.INSTANCE;
         }
 
         /**
@@ -296,13 +292,13 @@ final class NonInsertionTransformer<T> {
         Iterator<ListOperation<T>> clientIt = clientOp.iterator();
         Iterator<ListOperation<T>> serverIt = serverOp.iterator();
         while (clientIt.hasNext()) {
-            clientIt.next().accept(clientTarget, null);
+            clientIt.next().apply(clientTarget);
             while (clientPosition.get() > 0) {
-                serverIt.next().accept(serverTarget, null);
+                serverIt.next().apply(serverTarget);
             }
         }
         while (serverIt.hasNext()) {
-            serverIt.next().accept(serverTarget, null);
+            serverIt.next().apply(serverTarget);
         }
         return new Pair<>(clientTarget.build(), serverTarget.build());
     }

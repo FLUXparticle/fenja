@@ -1,7 +1,7 @@
 package de.fluxparticle.fenja.operation.algorithm
 
 import de.fluxparticle.fenja.operation.ListOperation
-import de.fluxparticle.fenja.operation.ListOperationVisitor
+import de.fluxparticle.fenja.operation.ListOperationHandler
 import kotlin.math.min
 
 /**
@@ -9,7 +9,7 @@ import kotlin.math.min
  */
 class Composer<T> private constructor() {
 
-    private abstract inner class State : ListOperationVisitor<T, Unit, Void?> {
+    private abstract inner class State : ListOperationHandler<T> {
         abstract val isPostState: Boolean
     }
 
@@ -17,38 +17,38 @@ class Composer<T> private constructor() {
         final override val isPostState: Boolean
             get() = false
 
-        final override fun visitRemoveOperation(oldValue: T, data: Void?) {
-            builder.visitRemoveOperation(oldValue, data)
+        final override fun remove(oldValue: T) {
+            builder.remove(oldValue)
         }
     }
 
     private inner class DefaultPreState : PreState() {
-        override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
+        override fun set(oldValue: T, newValue: T) {
             state = SetPostState(oldValue, newValue)
         }
 
-        override fun visitRetainOperation(count: Int, data: Void?) {
+        override fun retain(count: Int) {
             state = RetainPostState(count)
         }
 
-        override fun visitAddOperation(value: T, data: Void?) {
+        override fun add(value: T) {
             state = AddPostState(value)
         }
     }
 
     private inner class RetainPreState(val count: Int) : PreState() {
-        override fun visitAddOperation(value: T, data: Void?) {
-            builder.visitAddOperation(value, data)
+        override fun add(value: T) {
+            builder.add(value)
             consume(1)
         }
 
-        override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
-            builder.visitSetOperation(oldValue, newValue, data)
+        override fun set(oldValue: T, newValue: T) {
+            builder.set(oldValue, newValue)
             consume(1)
         }
 
-        override fun visitRetainOperation(count: Int, data: Void?) {
-            builder.visitRetainOperation(min(count, this.count), data)
+        override fun retain(count: Int) {
+            builder.retain(min(count, this.count))
             consume(count)
         }
 
@@ -65,57 +65,57 @@ class Composer<T> private constructor() {
         final override val isPostState: Boolean
             get() = true
 
-        final override fun visitAddOperation(value: T, data: Void?) {
-            builder.visitAddOperation(value, data)
+        final override fun add(value: T) {
+            builder.add(value)
         }
     }
 
     private inner class AddPostState(private val value: T) : PostState() {
-        override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
-            builder.visitAddOperation(newValue, data)
+        override fun set(oldValue: T, newValue: T) {
+            builder.add(newValue)
             state = defaultPreState
         }
 
-        override fun visitRemoveOperation(oldValue: T, data: Void?) {
+        override fun remove(oldValue: T) {
             state = defaultPreState
         }
 
-        override fun visitRetainOperation(count: Int, data: Void?) {
-            builder.visitAddOperation(value, data)
+        override fun retain(count: Int) {
+            builder.add(value)
             state = if (count > 1) RetainPreState(count - 1) else defaultPreState
         }
     }
 
     private inner class SetPostState(private val oldValue: T, private val newValue: T) : PostState() {
-        override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
-            builder.visitSetOperation(this.oldValue, newValue, data)
+        override fun set(oldValue: T, newValue: T) {
+            builder.set(this.oldValue, newValue)
             state = defaultPreState
         }
 
-        override fun visitRemoveOperation(oldValue: T, data: Void?) {
-            builder.visitRemoveOperation(this.oldValue, data)
+        override fun remove(oldValue: T) {
+            builder.remove(this.oldValue)
             state = defaultPreState
         }
 
-        override fun visitRetainOperation(count: Int, data: Void?) {
-            builder.visitSetOperation(oldValue, newValue, data)
+        override fun retain(count: Int) {
+            builder.set(oldValue, newValue)
             state = if (count > 1) RetainPreState(count - 1) else defaultPreState
         }
     }
 
     private inner class RetainPostState(val count: Int) : PostState() {
-        override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
-            builder.visitSetOperation(oldValue, newValue, data)
+        override fun set(oldValue: T, newValue: T) {
+            builder.set(oldValue, newValue)
             consume(1)
         }
 
-        override fun visitRemoveOperation(oldValue: T, data: Void?) {
-            builder.visitRemoveOperation(oldValue, data)
+        override fun remove(oldValue: T) {
+            builder.remove(oldValue)
             consume(1)
         }
 
-        override fun visitRetainOperation(count: Int, data: Void?) {
-            builder.visitRetainOperation(min(count, this.count), data)
+        override fun retain(count: Int) {
+            builder.retain(min(count, this.count))
             consume(count)
         }
 
@@ -129,15 +129,15 @@ class Composer<T> private constructor() {
     }
 
     private inner class FinisherState : PostState() {
-        override fun visitSetOperation(oldValue: T, newValue: T, data: Void?) {
+        override fun set(oldValue: T, newValue: T) {
             throw NoSuchElementException()
         }
 
-        override fun visitRemoveOperation(oldValue: T, data: Void?) {
+        override fun remove(oldValue: T) {
             throw NoSuchElementException()
         }
 
-        override fun visitRetainOperation(count: Int, data: Void?) {
+        override fun retain(count: Int) {
             throw NoSuchElementException()
         }
     }
@@ -150,9 +150,9 @@ class Composer<T> private constructor() {
 
     private fun composeOperations(it1: Iterator<ListOperation<T>>, it2: Iterator<ListOperation<T>>): Sequence<ListOperation<T>> {
         while (it1.hasNext()) {
-            it1.next().accept(state, null)
+            it1.next().apply(state)
             while (state.isPostState) {
-                it2.next().accept(state, null)
+                it2.next().apply(state)
             }
         }
         if (state !== defaultPreState) {
@@ -161,7 +161,7 @@ class Composer<T> private constructor() {
         if (it2.hasNext()) {
             state = FinisherState()
             while (it2.hasNext()) {
-                it2.next().accept(state, null)
+                it2.next().apply(state)
             }
         }
         return builder.build()
