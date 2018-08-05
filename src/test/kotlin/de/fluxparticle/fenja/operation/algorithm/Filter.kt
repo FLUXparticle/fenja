@@ -6,7 +6,7 @@ import de.fluxparticle.fenja.operation.ListOperation
 /**
  * Created by sreinck on 03.08.18.
  */
-class Filter<T>(private val predicate: (T) -> Boolean) : BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
+class Filter<T>(private val predicate: (T) -> Boolean) : BuildingListOperationHandler<T, ListOperation<T>> {
 
     private val builder = ListOperationSequenceBuilder<T>()
 
@@ -34,7 +34,7 @@ class Filter<T>(private val predicate: (T) -> Boolean) : BuildingListOperationHa
         builder.retain(count)
     }
 
-    override fun build(): Sequence<ListOperation<T>> {
+    override fun build(): ListOperation<T> {
         return builder.build()
     }
 

@@ -2,13 +2,13 @@ package de.fluxparticle.fenja.operation.algorithm
 
 import de.fluxparticle.fenja.operation.*
 
-class ListOperationSequenceBuilder<T> : BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
+class ListOperationSequenceBuilder<T> : BuildingListOperationHandler<T, ListOperation<T>> {
 
     private abstract inner class Cache {
 
         open fun add(value: T) {
             flush()
-            result.add(ListAddOperation(value))
+            result.add(ListAddComponent(value))
             cache = emptyCache
         }
 
@@ -39,7 +39,7 @@ class ListOperationSequenceBuilder<T> : BuildingListOperationHandler<T, Sequence
         }
 
         override fun flush() {
-            result.add(ListRetainOperation(distance))
+            result.add(ListRetainComponent(distance))
             cache = emptyCache
         }
 
@@ -48,12 +48,12 @@ class ListOperationSequenceBuilder<T> : BuildingListOperationHandler<T, Sequence
     private inner class RemoveOperationCache(private val oldValue : T) : Cache() {
 
         override fun add(value: T) {
-            result.add(ListSetOperation(oldValue, value))
+            result.add(ListSetComponent(oldValue, value))
             cache = emptyCache
         }
 
         override fun flush() {
-            result.add(ListRemoveOperation(oldValue))
+            result.add(ListRemoveComponent(oldValue))
             cache = emptyCache
         }
 
@@ -61,7 +61,7 @@ class ListOperationSequenceBuilder<T> : BuildingListOperationHandler<T, Sequence
 
     private var cache = emptyCache
 
-    private val result = mutableListOf<ListOperation<T>>()
+    private val result = mutableListOf<ListComponent<T>>()
 
     override fun add(value: T) {
         cache.add(value)
@@ -69,7 +69,7 @@ class ListOperationSequenceBuilder<T> : BuildingListOperationHandler<T, Sequence
 
     override fun set(oldValue: T, newValue: T) {
         cache.flush()
-        result.add(ListSetOperation(oldValue, newValue))
+        result.add(ListSetComponent(oldValue, newValue))
     }
 
     override fun remove(oldValue: T) {
@@ -80,9 +80,9 @@ class ListOperationSequenceBuilder<T> : BuildingListOperationHandler<T, Sequence
         cache.retain(count)
     }
 
-    override fun build(): Sequence<ListOperation<T>> {
+    override fun build(): ListOperation<T> {
         cache.flush()
-        return result.asSequence()
+        return ListOperation(result)
     }
 
 }

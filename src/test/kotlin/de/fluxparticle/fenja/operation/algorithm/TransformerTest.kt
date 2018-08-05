@@ -11,8 +11,8 @@ class TransformerTest {
 
     @Test
     fun simple1() {
-        val clientOp = sequenceOf(add("Peter"), add("Paul"))
-        val serverOp = sequenceOf(add("Maria"))
+        val clientOp = listOperation(add("Peter"), add("Paul"))
+        val serverOp = listOperation(add("Maria"))
 
         val (actualClient, actualServer) = Transformer.transform(clientOp, serverOp)
 

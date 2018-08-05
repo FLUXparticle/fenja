@@ -5,19 +5,19 @@ import de.fluxparticle.fenja.operation.*
 /**
  * Created by sreinck on 03.08.18.
  */
-internal fun add(value: String): ListOperation<String> = ListAddOperation(value)
+internal fun add(value: String): ListComponent<String> = ListAddComponent(value)
 
-internal fun set(oldValue: String, newValue: String): ListOperation<String> = ListSetOperation(oldValue, newValue)
+internal fun set(oldValue: String, newValue: String): ListComponent<String> = ListSetComponent(oldValue, newValue)
 
-internal fun remove(oldValue: String): ListOperation<String> = ListRemoveOperation(oldValue)
+internal fun remove(oldValue: String): ListComponent<String> = ListRemoveComponent(oldValue)
 
-internal fun retain(count: Int): ListOperation<String> = ListRetainOperation(count)
+internal fun retain(count: Int): ListComponent<String> = ListRetainComponent(count)
 
 fun <T> Sequence<T>.message(): String {
     return asIterable().message()
 }
 
-internal fun <T> Iterable<T>.message(): String {
+fun <T> Iterable<T>.message(): String {
     val sb = StringBuilder("[")
 
     var delimiter = ""
@@ -31,4 +31,8 @@ internal fun <T> Iterable<T>.message(): String {
     sb.append("]")
 
     return sb.toString()
+}
+
+fun <T> listOperation(vararg components: ListComponent<T>): ListOperation<T> {
+    return ListOperation(components.asList())
 }

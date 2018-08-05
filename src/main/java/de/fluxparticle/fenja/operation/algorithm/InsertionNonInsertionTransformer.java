@@ -1,10 +1,10 @@
 package de.fluxparticle.fenja.operation.algorithm;
 
 import de.fluxparticle.fenja.operation.BuildingListOperationHandler;
+import de.fluxparticle.fenja.operation.ListComponent;
 import de.fluxparticle.fenja.operation.ListOperation;
 import de.fluxparticle.fenja.operation.algorithm.PositionTracker.RelativePosition;
 import kotlin.Pair;
-import kotlin.sequences.Sequence;
 
 import java.util.Iterator;
 
@@ -32,7 +32,7 @@ final class InsertionNonInsertionTransformer<T> {
      * help of auxiliary information from a second mutation. These targets should
      * be used in pairs.
      */
-    private static abstract class Target<T> implements BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
+    private static abstract class Target<T> implements BuildingListOperationHandler<T, ListOperation<T>> {
 
         /**
          * The target to which to write the transformed mutation.
@@ -54,7 +54,7 @@ final class InsertionNonInsertionTransformer<T> {
         }
 
         @Override
-        public Sequence<ListOperation<T>> build() {
+        public ListOperation<T> build() {
             return targetDocument.build();
         }
 
@@ -213,7 +213,7 @@ final class InsertionNonInsertionTransformer<T> {
 
     }
 
-    Pair<Sequence<ListOperation<T>>, Sequence<ListOperation<T>>> transformOperations(Sequence<ListOperation<T>> insertionOp, Sequence<ListOperation<T>> nonInsertionOp) {
+    Pair<ListOperation<T>, ListOperation<T>> transformOperations(ListOperation<T> insertionOp, ListOperation<T> nonInsertionOp) {
         PositionTracker positionTracker = new PositionTracker();
 
         RelativePosition insertionPosition = positionTracker.getPositivePosition();
@@ -228,8 +228,8 @@ final class InsertionNonInsertionTransformer<T> {
         insertionTarget.setOtherTarget(nonInsertionTarget);
         nonInsertionTarget.setOtherTarget(insertionTarget);
 
-        Iterator<ListOperation<T>> insertionIt = insertionOp.iterator();
-        Iterator<ListOperation<T>> nonInsertionIt = nonInsertionOp.iterator();
+        Iterator<ListComponent<T>> insertionIt = insertionOp.iterator();
+        Iterator<ListComponent<T>> nonInsertionIt = nonInsertionOp.iterator();
         while (insertionIt.hasNext()) {
             insertionIt.next().apply(insertionTarget);
             while (insertionPosition.get() > 0) {

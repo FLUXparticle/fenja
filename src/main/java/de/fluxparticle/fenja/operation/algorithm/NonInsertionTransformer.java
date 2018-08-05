@@ -1,10 +1,10 @@
 package de.fluxparticle.fenja.operation.algorithm;
 
 import de.fluxparticle.fenja.operation.BuildingListOperationHandler;
+import de.fluxparticle.fenja.operation.ListComponent;
 import de.fluxparticle.fenja.operation.ListOperation;
 import de.fluxparticle.fenja.operation.algorithm.PositionTracker.RelativePosition;
 import kotlin.Pair;
-import kotlin.sequences.Sequence;
 
 import java.util.Iterator;
 
@@ -105,7 +105,7 @@ final class NonInsertionTransformer<T> {
      * help of auxiliary information from a second mutation. These targets should
      * be used in pairs.
      */
-    private final class Target implements BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
+    private final class Target implements BuildingListOperationHandler<T, ListOperation<T>> {
 
         private final class RemoveOperationCache extends RangeCache<T> {
 
@@ -207,7 +207,7 @@ final class NonInsertionTransformer<T> {
         }
 
         @Override
-        public Sequence<ListOperation<T>> build() {
+        public ListOperation<T> build() {
             return targetDocument.build();
         }
 
@@ -272,7 +272,7 @@ final class NonInsertionTransformer<T> {
      * @param serverOp the operation from the server
      * @return the transformed pair of operations
      */
-    Pair<Sequence<ListOperation<T>>, Sequence<ListOperation<T>>> transformOperations(Sequence<ListOperation<T>> clientOp, Sequence<ListOperation<T>> serverOp) {
+    Pair<ListOperation<T>, ListOperation<T>> transformOperations(ListOperation<T> clientOp, ListOperation<T> serverOp) {
         PositionTracker positionTracker = new PositionTracker();
 
         RelativePosition clientPosition = positionTracker.getPositivePosition();
@@ -289,8 +289,8 @@ final class NonInsertionTransformer<T> {
 
         // Incrementally apply the two operations in a linearly-ordered interleaving
         // fashion.
-        Iterator<ListOperation<T>> clientIt = clientOp.iterator();
-        Iterator<ListOperation<T>> serverIt = serverOp.iterator();
+        Iterator<ListComponent<T>> clientIt = clientOp.iterator();
+        Iterator<ListComponent<T>> serverIt = serverOp.iterator();
         while (clientIt.hasNext()) {
             clientIt.next().apply(clientTarget);
             while (clientPosition.get() > 0) {

@@ -9,7 +9,7 @@ class Transformer private constructor() {
 
     companion object {
 
-        fun <T> transform(clientOp: Sequence<ListOperation<T>>, serverOp: Sequence<ListOperation<T>>): Pair<Sequence<ListOperation<T>>, Sequence<ListOperation<T>>> {
+        fun <T> transform(clientOp: ListOperation<T>, serverOp: ListOperation<T>): Pair<ListOperation<T>, ListOperation<T>> {
                 // The transform process consists of decomposing the client and server
                 // operations into two constituent operations each and performing four
                 // transforms structured as in the following diagram:

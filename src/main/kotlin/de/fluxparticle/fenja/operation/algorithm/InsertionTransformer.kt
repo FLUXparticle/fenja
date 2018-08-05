@@ -7,7 +7,7 @@ import de.fluxparticle.fenja.operation.algorithm.PositionTracker.RelativePositio
 /**
  * Created by sreinck on 03.08.18.
  */
-class InsertionTransformer<T> private constructor(private val relativePosition: RelativePosition) : BuildingListOperationHandler<T, Sequence<ListOperation<T>>> {
+class InsertionTransformer<T> private constructor(private val relativePosition: RelativePosition) : BuildingListOperationHandler<T, ListOperation<T>> {
 
     private lateinit var otherTransformer: InsertionTransformer<T>
 
@@ -38,13 +38,13 @@ class InsertionTransformer<T> private constructor(private val relativePosition: 
         }
     }
 
-    override fun build(): Sequence<ListOperation<T>> {
+    override fun build(): ListOperation<T> {
         return builder.build()
     }
 
     companion object {
 
-        fun <T> transformOperations(clientOp: Sequence<ListOperation<T>>, serverOp: Sequence<ListOperation<T>>): Pair<Sequence<ListOperation<T>>, Sequence<ListOperation<T>>> {
+        fun <T> transformOperations(clientOp: ListOperation<T>, serverOp: ListOperation<T>): Pair<ListOperation<T>, ListOperation<T>> {
             val positionTracker = PositionTracker()
 
             val clientPosition = positionTracker.positivePosition

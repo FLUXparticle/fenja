@@ -2,6 +2,7 @@ package de.fluxparticle.fenja.operation.algorithm
 
 import de.fluxparticle.fenja.list.DelegatedList
 import de.fluxparticle.fenja.list.WriteList
+import de.fluxparticle.fenja.operation.ListComponent
 import de.fluxparticle.fenja.operation.ListOperation
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers
@@ -59,7 +60,7 @@ class FilterTest(
             }
         }
 
-        fun filterOp(op: Sequence<ListOperation<String>>, predicate: (String) -> Boolean): Sequence<ListOperation<String>> {
+        fun filterOp(op: ListOperation<String>, predicate: (String) -> Boolean): ListOperation<String> {
             val filter = Filter(predicate)
             op.forEach { it.apply(filter) }
             return filter.build()
@@ -67,14 +68,14 @@ class FilterTest(
 
     }
 
-    lateinit var op: Sequence<ListOperation<String>>
+    lateinit var op: ListOperation<String>
 
     @Test
     fun name() {
         val mutableList = initList.toMutableList()
 
-        val initOp = initList.map { add(it) }.asSequence()
-        val initFilterOp = initList.filter(predicate).map { add(it) }.asSequence()
+        val initOp = ListOperation(initList.map { add(it) })
+        val initFilterOp = ListOperation(initList.filter(predicate).map { add(it) })
 
         val diffOp1 = filterOp(initOp, predicate)
 
@@ -113,8 +114,8 @@ class FilterTest(
         assertThat(actual2.message(), actual2.asIterable(), contains(expected))
     }
 
-    private fun contains(list: List<String>) : Matcher<Iterable<ListOperation<String>>> = if (list.isEmpty()) {
-        emptyIterable<ListOperation<String>>()
+    private fun contains(list: List<String>) : Matcher<Iterable<ListComponent<String>>> = if (list.isEmpty()) {
+        emptyIterable<ListComponent<String>>()
     } else {
         contains(list.map { Matchers.equalTo(add(it)) })
     }

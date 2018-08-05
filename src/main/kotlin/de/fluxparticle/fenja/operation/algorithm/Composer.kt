@@ -1,5 +1,6 @@
 package de.fluxparticle.fenja.operation.algorithm
 
+import de.fluxparticle.fenja.operation.ListComponent
 import de.fluxparticle.fenja.operation.ListOperation
 import de.fluxparticle.fenja.operation.ListOperationHandler
 import kotlin.math.min
@@ -148,7 +149,7 @@ class Composer<T> private constructor() {
 
     private val builder = ListOperationSequenceBuilder<T>()
 
-    private fun composeOperations(it1: Iterator<ListOperation<T>>, it2: Iterator<ListOperation<T>>): Sequence<ListOperation<T>> {
+    private fun composeOperations(it1: Iterator<ListComponent<T>>, it2: Iterator<ListComponent<T>>): ListOperation<T> {
         while (it1.hasNext()) {
             it1.next().apply(state)
             while (state.isPostState) {
@@ -169,7 +170,7 @@ class Composer<T> private constructor() {
 
     companion object {
 
-        fun <T> compose(op1: Sequence<ListOperation<T>>, op2: Sequence<ListOperation<T>>): Sequence<ListOperation<T>> {
+        fun <T> compose(op1: ListOperation<T>, op2: ListOperation<T>): ListOperation<T> {
             return Composer<T>().composeOperations(op1.iterator(), op2.iterator())
         }
 
