@@ -1,5 +1,7 @@
 package de.fluxparticle.fenja.expr
 
+import de.fluxparticle.fenja.dependency.DependencyVisitor
+
 /**
  * Created by sreinck on 31.07.18.
  */
@@ -13,7 +15,7 @@ class MinExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
         return "min ${arguments.toList()}"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, *arguments.toList().toTypedArray())
     }
 
@@ -29,7 +31,7 @@ class MaxExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
         return "max ${arguments.toList()}"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, *arguments.toList().toTypedArray())
     }
 

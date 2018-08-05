@@ -6,18 +6,22 @@ import de.fluxparticle.fenja.dependency.UpdateDependency
 /**
  * Created by sreinck on 25.07.18.
  */
-class SilentFenjaSystemLogger : FenjaSystemLogger {
+class DelegateFenjaSystemLogger(private var delegate: FenjaSystemLogger) : FenjaSystemLogger {
+
+    fun setDelegate(delegate: FenjaSystemLogger) {
+        this.delegate = delegate
+    }
 
     override fun updateSource(source: SourceDependency<*>) {
-        // empty
+        delegate.updateSource(source)
     }
 
     override fun executeUpdate(update: UpdateDependency<*>) {
-        // empty
+        delegate.executeUpdate(update)
     }
 
     override fun ruleLists(headline: String, map: Map<String, Collection<String>>) {
-        // empty
+        delegate.ruleLists(headline, map)
     }
 
 }

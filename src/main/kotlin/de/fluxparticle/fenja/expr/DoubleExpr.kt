@@ -1,5 +1,7 @@
 package de.fluxparticle.fenja.expr
 
+import de.fluxparticle.fenja.dependency.DependencyVisitor
+
 /**
  * Created by sreinck on 31.07.18.
  */
@@ -35,7 +37,7 @@ class NegateExpr(private val argument: Expr<Double>) : Expr<Double>() {
         return "-$argumentResult"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, argument)
     }
 
@@ -57,7 +59,7 @@ class PlusExpr(private val left: Expr<Double>, private val right: Expr<Double>) 
         return "$leftResult + $rightResult"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, left, right)
     }
 
@@ -79,7 +81,7 @@ class MinusExpr(private val left: Expr<Double>, private val right: Expr<Double>)
         return "$leftResult - $rightResult"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, left, right)
     }
 
@@ -99,7 +101,7 @@ class TimesExpr(private val left: Expr<Double>, private val right: Expr<Double>)
         return "$leftResult * $rightResult"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, left, right)
     }
 
@@ -119,7 +121,7 @@ class DivExpr(private val left: Expr<Double>, private val right: Expr<Double>) :
         return "$leftResult / $rightResult"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, left, right)
     }
 

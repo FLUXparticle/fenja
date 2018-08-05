@@ -1,5 +1,7 @@
 package de.fluxparticle.fenja.expr
 
+import de.fluxparticle.fenja.dependency.DependencyVisitor
+
 /**
  * Created by sreinck on 01.08.18.
  */
@@ -21,7 +23,7 @@ class NotExpr(private val argument: Expr<Boolean>) : Expr<Boolean>() {
         return "!$argumentResult"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, argument)
     }
 
@@ -43,7 +45,7 @@ class AndExpr(private val left: Expr<Boolean>, private val right: Expr<Boolean>)
         return "$leftResult and $rightResult"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, left, right)
     }
 
@@ -65,7 +67,7 @@ class OrExpr(private val left: Expr<Boolean>, private val right: Expr<Boolean>) 
         return "$leftResult or $rightResult"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, left, right)
     }
 

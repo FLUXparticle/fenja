@@ -1,7 +1,7 @@
 package de.fluxparticle.fenja.logger
 
-import de.fluxparticle.fenja.expr.InputExpr
-import de.fluxparticle.fenja.expr.OutputExpr
+import de.fluxparticle.fenja.dependency.SourceDependency
+import de.fluxparticle.fenja.dependency.UpdateDependency
 import java.io.OutputStream
 import java.io.PrintWriter
 
@@ -12,12 +12,12 @@ class PrintFenjaSystemLogger(private val out: PrintWriter) : FenjaSystemLogger {
 
     constructor(stream: OutputStream) : this(PrintWriter(stream, true))
 
-    override fun updateVariable(inputExpr: InputExpr<*>) {
-        out.println("===== ${inputExpr.name} = ${inputExpr.value} =====")
+    override fun updateSource(source: SourceDependency<*>) {
+        // TODO out.println("===== ${source.name} = ${source.value} =====")
     }
 
-    override fun evaluateRule(outputExpr: OutputExpr<*>) {
-        out.println("${outputExpr.rule} -> ${outputExpr.name} = ${outputExpr.value}")
+    override fun executeUpdate(update: UpdateDependency<*>) {
+        // TODO out.println("${update.rule} -> ${update.name} = ${update.value}")
     }
 
     override fun ruleLists(headline: String, map: Map<String, Collection<String>>) {

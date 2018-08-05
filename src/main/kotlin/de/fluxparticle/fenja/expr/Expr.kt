@@ -1,21 +1,20 @@
 package de.fluxparticle.fenja.expr
 
+import de.fluxparticle.fenja.dependency.Dependency
+import de.fluxparticle.fenja.dependency.DependencyVisitor
+
 /**
  * Created by sreinck on 03.06.18.
  */
-abstract class Expr<T> {
+abstract class Expr<T> : Dependency<T> {
 
     operator fun <R> invoke(func: (T) -> R) : Expr<R> = MapExpr(this, func)
 
     operator fun <S> rangeTo(other: Expr<S>) = CombineExprBuilder2(this, other)
 
-    abstract fun eval(): T
-
     abstract override fun toString(): String
 
     open fun asFactor(): String = toString()
-
-    abstract fun <R> accept(visitor: ExprVisitor<R>): R
 
 }
 
@@ -29,7 +28,7 @@ class ConstExpr<T>(private val value: T) : Expr<T>() {
         return value.toString()
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this)
     }
 
@@ -49,7 +48,7 @@ class MapExpr<T, R>(private val argument: Expr<T>, private val func: (T) -> R) :
         return "$argumentResult {}"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, argument)
     }
 
@@ -75,7 +74,7 @@ class CombineExpr2<A, B, R>(
         return "($resultA..$resultB) {}"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, paramA, paramB)
     }
 
@@ -115,7 +114,7 @@ class CombineExpr3<A, B, C, R>(
         return "($resultA..$resultB..$resultC) {}"
     }
 
-    override fun <R> accept(visitor: ExprVisitor<R>): R {
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, paramA, paramB, paramC)
     }
 

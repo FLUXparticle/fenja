@@ -26,7 +26,7 @@ class ExprTest {
     }
 
     private fun ruleToString(expr: Expr<Double>) =
-            (expr as OutputExpr<Double>).rule.toString()
+            (expr as OutputExpr<Double>).getDependency().toString()
 
     @Test
     fun parentheses() {

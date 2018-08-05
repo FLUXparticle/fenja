@@ -1,21 +1,21 @@
 package de.fluxparticle.fenja.logger
 
-import de.fluxparticle.fenja.expr.InputExpr
-import de.fluxparticle.fenja.expr.OutputExpr
+import de.fluxparticle.fenja.dependency.SourceDependency
+import de.fluxparticle.fenja.dependency.UpdateDependency
 
 /**
  * Created by sreinck on 25.07.18.
  */
 class TeeFenjaSystemLogger(private val left: FenjaSystemLogger, private val right: FenjaSystemLogger) : FenjaSystemLogger {
 
-    override fun updateVariable(inputExpr: InputExpr<*>) {
-        left.updateVariable(inputExpr)
-        right.updateVariable(inputExpr)
+    override fun updateSource(source: SourceDependency<*>) {
+        left.updateSource(source)
+        right.updateSource(source)
     }
 
-    override fun evaluateRule(outputExpr: OutputExpr<*>) {
-        left.evaluateRule(outputExpr)
-        right.evaluateRule(outputExpr)
+    override fun executeUpdate(update: UpdateDependency<*>) {
+        left.executeUpdate(update)
+        right.executeUpdate(update)
     }
 
     override fun ruleLists(headline: String, map: Map<String, Collection<String>>) {

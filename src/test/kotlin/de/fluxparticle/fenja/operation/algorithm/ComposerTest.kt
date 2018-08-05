@@ -62,7 +62,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(retain(1), remove("Paul"), add("Maria")))
+        assertThat(actual.message(), actual, contains(retain(1), set("Paul", "Maria")))
     }
 
     @Test
@@ -72,7 +72,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(remove("Peter"), remove("Paul"), add("Maria")))
+        assertThat(actual.message(), actual, contains(remove("Peter"), set("Paul", "Maria")))
     }
 
     @Test
