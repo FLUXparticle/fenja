@@ -25,7 +25,7 @@ class EventStreamTest {
 
     @Test
     fun simple1() {
-        output = input { it.toString() }
+        output = input map { it.toString() }
 
         system.finish()
 

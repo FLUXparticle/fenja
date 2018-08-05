@@ -12,7 +12,7 @@ abstract class EventStream<T> : Dependency<T> {
 
     internal abstract fun getTransaction(): Long
 
-    operator fun <R> invoke(func: (T) -> R): EventStream<R> = MapEventStream(this, func)
+    infix fun <R> map(func: (T) -> R): EventStream<R> = MapEventStream(this, func)
 
     infix fun hold(initValue: T): Expr<T> = EventStreamHoldExpr(this, initValue)
 
@@ -24,6 +24,16 @@ abstract class EventStream<T> : Dependency<T> {
 
     infix fun <S> snapshot(expr: Expr<S>) = SnapshotBuilder(this, expr)
 
+}
+
+fun <T> EventStream<T?>.filterNotNull(): EventStream<T> {
+    @Suppress("unchecked_cast")
+    return filter { it != null } as EventStream<T>
+}
+
+infix fun <T, R> EventStream<T?>.mapNotNull(func: (T) -> R): EventStream<R?> {
+    @Suppress("unchecked_cast")
+    return map { it?.let(func) }
 }
 
 class SnapshotBuilder<T, S>(private val source: EventStream<T>, private val expr: Expr<S>) {

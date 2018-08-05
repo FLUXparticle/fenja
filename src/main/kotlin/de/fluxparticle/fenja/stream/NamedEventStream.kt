@@ -2,6 +2,8 @@ package de.fluxparticle.fenja.stream
 
 import de.fluxparticle.fenja.dependency.*
 import de.fluxparticle.fenja.logger.FenjaSystemLogger
+import javafx.beans.property.Property
+import javafx.beans.value.ObservableValue
 import javafx.event.Event
 import javafx.event.EventType
 import javafx.scene.Node
@@ -48,9 +50,15 @@ fun <T : Event> EventStreamSource<T>.bind(node: Node, eventType: EventType<T>) {
     node.addEventHandler(eventType) { sendValue(it) }
 }
 
+infix fun <T> EventStreamSource<T>.bind(observableValue: ObservableValue<T>) {
+    observableValue.addListener { _, _, newValue -> sendValue(newValue) }
+}
+
 class EventStreamRelay<T>(name: String, private val logger: FenjaSystemLogger) : NamedEventStream<T>(name), UpdateDependency<T> {
 
     private lateinit var source: EventStream<T>
+
+    internal var property: Property<T>? = null
 
     override fun getDependency(): Dependency<T>? {
         return if (this::source.isInitialized) source else null
@@ -66,6 +74,7 @@ class EventStreamRelay<T>(name: String, private val logger: FenjaSystemLogger) :
             val value = source.eval()
             buffer.setValue(transaction, value)
             logger.executeUpdate(this, value)
+            property?.value = value
         }
     }
 
@@ -73,4 +82,11 @@ class EventStreamRelay<T>(name: String, private val logger: FenjaSystemLogger) :
         return visitor.visit(this, source)
     }
 
+}
+
+infix fun <T> Property<T>.bind(eventStream: EventStream<T>) {
+    when (eventStream) {
+        is EventStreamRelay -> eventStream.property = this
+        else -> throw RuntimeException("only EventStreamRelay can be bound")
+    }
 }
