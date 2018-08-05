@@ -12,6 +12,7 @@ import de.fluxparticle.fenja.logger.SilentFenjaSystemLogger
 import de.fluxparticle.fenja.stream.EventStream
 import de.fluxparticle.fenja.stream.EventStreamRelay
 import de.fluxparticle.fenja.stream.EventStreamSource
+import de.fluxparticle.fenja.stream.TransactionProvider
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.properties.ReadOnlyProperty
@@ -22,6 +23,8 @@ import kotlin.reflect.KProperty
  * Created by sreinck on 31.07.18.
  */
 class FenjaSystem(private val logger: FenjaSystemLogger = SilentFenjaSystemLogger()) {
+
+    private val transactionProvider = TransactionProvider()
 
     private val names = HashSet<String>()
 
@@ -36,7 +39,7 @@ class FenjaSystem(private val logger: FenjaSystemLogger = SilentFenjaSystemLogge
     fun <T> createEventStreamSource(name: String): EventStreamSource<T> {
         checkNotFinished()
         checkName(name)
-        val eventStreamSource = EventStreamSource<T>(name, logger)
+        val eventStreamSource = EventStreamSource<T>(name, transactionProvider, logger)
         sourceDependencies[name] = eventStreamSource
         return eventStreamSource
     }

@@ -33,7 +33,7 @@ class EventStreamTest {
         val teeLogger = TeeFenjaSystemLogger(mockLogger, PrintFenjaSystemLogger(System.out))
         logger.setDelegate(teeLogger)
 
-        input.sendValue(1, 42)
+        input.sendValue(42)
 
         verify(mockLogger).updateSource(any(), any())
         verify(mockLogger).executeUpdate(any(), any())

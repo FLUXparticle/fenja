@@ -2,6 +2,9 @@ package de.fluxparticle.fenja.stream
 
 import de.fluxparticle.fenja.dependency.*
 import de.fluxparticle.fenja.logger.FenjaSystemLogger
+import javafx.event.Event
+import javafx.event.EventType
+import javafx.scene.Node
 
 /**
  * Created by sreinck on 05.08.18.
@@ -24,11 +27,12 @@ abstract class NamedEventStream<T>(override val name: String) : EventStream<T>()
 
 }
 
-class EventStreamSource<T>(name: String, private val logger: FenjaSystemLogger) : NamedEventStream<T>(name), SourceDependency<T> {
+class EventStreamSource<T>(name: String, private val transactionProvider: TransactionProvider, private val logger: FenjaSystemLogger) : NamedEventStream<T>(name), SourceDependency<T> {
 
     override var updates: List<UpdateDependency<*>>? = null
 
-    fun sendValue(transaction: Long, value: T) {
+    fun sendValue(value: T) {
+        val transaction = transactionProvider.newTransaction()
         buffer.setValue(transaction, value)
         logger.updateSource(this, value)
         updates?.forEach { it.update() }
@@ -38,6 +42,10 @@ class EventStreamSource<T>(name: String, private val logger: FenjaSystemLogger) 
         return visitor.visit(this)
     }
 
+}
+
+fun <T : Event> EventStreamSource<T>.bind(node: Node, eventType: EventType<T>) {
+    node.addEventHandler(eventType) { sendValue(it) }
 }
 
 class EventStreamRelay<T>(name: String, private val logger: FenjaSystemLogger) : NamedEventStream<T>(name), UpdateDependency<T> {

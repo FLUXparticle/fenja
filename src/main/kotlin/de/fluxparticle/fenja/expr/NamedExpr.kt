@@ -38,11 +38,6 @@ class InputExpr<T>(name: String, private val logger: FenjaSystemLogger) : NamedE
             updates?.forEach { it.update() }
         }
 
-    infix fun bind(observableValue: ObservableValue<T>) {
-        value = observableValue.value
-        observableValue.addListener { _, _, newValue -> value = newValue }
-    }
-
     override fun toString(): String {
         return name
     }
@@ -51,6 +46,11 @@ class InputExpr<T>(name: String, private val logger: FenjaSystemLogger) : NamedE
         return visitor.visit(this)
     }
 
+}
+
+infix fun <T> InputExpr<T>.bind(observableValue: ObservableValue<T>) {
+    value = observableValue.value
+    observableValue.addListener { _, _, newValue -> value = newValue }
 }
 
 class OutputExpr<T>(name: String, private val logger: FenjaSystemLogger) : NamedExpr<T>(name), UpdateDependency<T> {

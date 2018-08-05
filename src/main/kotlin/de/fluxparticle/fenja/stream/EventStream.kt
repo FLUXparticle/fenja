@@ -22,6 +22,43 @@ abstract class EventStream<T> : Dependency<T> {
 
     infix fun <S> zipWith(other: EventStream<S>) = ZipWithEventStreamBuilder(this, other)
 
+    infix fun <S> snapshot(expr: Expr<S>) = SnapshotBuilder(this, expr)
+
+}
+
+class SnapshotBuilder<T, S>(private val source: EventStream<T>, private val expr: Expr<S>) {
+
+    operator fun <R> invoke(func: (T, S) -> R): EventStream<R> = SnapshotEventStream(source, expr, func)
+
+}
+
+class SnapshotEventStream<T, S, R>(private val source: EventStream<T>, private val expr: Expr<S>, private val func: (T, S) -> R) : EventStream<R>() {
+
+    private val buffer = Buffer<R>()
+
+    override fun getTransaction(): Long {
+        return source.getTransaction()
+    }
+
+    override fun eval(): R {
+        val transaction = source.getTransaction()
+        if (transaction > buffer.getTransaction()) {
+            val valueT = source.eval()
+            val valueS = expr.eval()
+            val value = func.invoke(valueT, valueS)
+            buffer.setValue(transaction, value)
+        }
+        return buffer.getValue()
+    }
+
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
+        return visitor.visit(this, source) // expr
+    }
+
+    override fun toString(): String {
+        return "($source snapshot $expr) {}"
+    }
+
 }
 
 class EventStreamHoldExpr<T>(private val source: EventStream<T>, initValue: T) : Expr<T>() {
