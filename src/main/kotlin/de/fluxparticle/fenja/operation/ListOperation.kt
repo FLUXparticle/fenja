@@ -10,8 +10,28 @@ class ListOperation<T>(private val components: Iterable<ListComponent<T>>) : Ite
     }
 
     fun <R> apply(builder: BuildingListOperationHandler<T, R>): R {
-        forEach { it.apply(builder) }
+        apply(builder as ListOperationHandler<T>)
         return builder.build()
+    }
+
+    fun apply(handler: ListOperationHandler<T>) {
+        forEach { it.apply(handler) }
+    }
+
+    override fun toString(): String {
+        val sb = StringBuilder("[")
+
+        var delimiter = ""
+        val iterator = iterator()
+        while (iterator.hasNext()) {
+            val next = iterator.next()
+            sb.append(delimiter)
+            sb.append(next.toString())
+            delimiter = ", "
+        }
+        sb.append("]")
+
+        return sb.toString()
     }
 
 }

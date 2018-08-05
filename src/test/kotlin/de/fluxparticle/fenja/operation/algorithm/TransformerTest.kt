@@ -16,8 +16,8 @@ class TransformerTest {
 
         val (actualClient, actualServer) = Transformer.transform(clientOp, serverOp)
 
-        Assert.assertThat(actualClient.message(), actualClient.asIterable(), Matchers.contains(add("Peter"), add("Paul"), retain(1)))
-        Assert.assertThat(actualServer.message(), actualServer.asIterable(), Matchers.contains(retain(2), add("Maria")))
+        Assert.assertThat(actualClient.toString(), actualClient.asIterable(), Matchers.contains(add("Peter"), add("Paul"), retain(1)))
+        Assert.assertThat(actualServer.toString(), actualServer.asIterable(), Matchers.contains(retain(2), add("Maria")))
     }
 
 }

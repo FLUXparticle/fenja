@@ -32,7 +32,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(add("Peter"), add("Paul"), add("Maria")))
+        assertThat(actual.toString(), actual, contains(add("Peter"), add("Paul"), add("Maria")))
     }
 
     @Test
@@ -42,7 +42,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(add("Peter"), add("Paul"), add("Maria")))
+        assertThat(actual.toString(), actual, contains(add("Peter"), add("Paul"), add("Maria")))
     }
 
     @Test
@@ -52,7 +52,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(add("Peter"), add("Paul")))
+        assertThat(actual.toString(), actual, contains(add("Peter"), add("Paul")))
     }
 
     @Test
@@ -62,7 +62,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(retain(1), set("Paul", "Maria")))
+        assertThat(actual.toString(), actual, contains(retain(1), set("Paul", "Maria")))
     }
 
     @Test
@@ -72,7 +72,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(remove("Peter"), set("Paul", "Maria")))
+        assertThat(actual.toString(), actual, contains(remove("Peter"), set("Paul", "Maria")))
     }
 
     @Test
@@ -82,7 +82,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(add("Peter"), retain(1), add("Maria")))
+        assertThat(actual.toString(), actual, contains(add("Peter"), retain(1), add("Maria")))
     }
 
     @Test
@@ -92,7 +92,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(add("Paul")))
+        assertThat(actual.toString(), actual, contains(add("Paul")))
     }
 
     @Test
@@ -102,7 +102,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(set("Peter", "Paul")))
+        assertThat(actual.toString(), actual, contains(set("Peter", "Paul")))
     }
 
     @Test
@@ -112,7 +112,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(add("Peter"), set("Paul", "Maria")))
+        assertThat(actual.toString(), actual, contains(add("Peter"), set("Paul", "Maria")))
     }
 
     @Test
@@ -122,7 +122,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(set("Peter", "Paul"), add("Maria")))
+        assertThat(actual.toString(), actual, contains(set("Peter", "Paul"), add("Maria")))
     }
 
     @Test
@@ -132,7 +132,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(retain(1), remove("Peter")))
+        assertThat(actual.toString(), actual, contains(retain(1), remove("Peter")))
     }
 
     @Test
@@ -142,7 +142,7 @@ class ComposerTest {
 
         val actual = Composer.compose(op1, op2).asIterable()
 
-        assertThat(actual.message(), actual, contains(set("Peter", "Maria")))
+        assertThat(actual.toString(), actual, contains(set("Peter", "Maria")))
     }
 
 }

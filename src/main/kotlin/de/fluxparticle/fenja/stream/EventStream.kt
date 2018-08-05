@@ -123,12 +123,12 @@ class EventStreamHoldExpr<T>(private val source: EventStream<T>, initValue: T) :
         return buffer.getValue()
     }
 
-    override fun toString(): String {
-        return source.toString()
-    }
-
     override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, source)
+    }
+
+    override fun toString(): String {
+        return source.toString()
     }
 
 }

@@ -13,26 +13,6 @@ internal fun remove(oldValue: String): ListComponent<String> = ListRemoveCompone
 
 internal fun retain(count: Int): ListComponent<String> = ListRetainComponent(count)
 
-fun <T> Sequence<T>.message(): String {
-    return asIterable().message()
-}
-
-fun <T> Iterable<T>.message(): String {
-    val sb = StringBuilder("[")
-
-    var delimiter = ""
-    val iterator = iterator()
-    while (iterator.hasNext()) {
-        val next = iterator.next()
-        sb.append(delimiter)
-        sb.append(next.toString())
-        delimiter = ", "
-    }
-    sb.append("]")
-
-    return sb.toString()
-}
-
 fun <T> listOperation(vararg components: ListComponent<T>): ListOperation<T> {
     return ListOperation(components.asList())
 }

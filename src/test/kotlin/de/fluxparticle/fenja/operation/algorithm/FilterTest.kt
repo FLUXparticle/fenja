@@ -79,39 +79,39 @@ class FilterTest(
 
         val diffOp1 = filterOp(initOp, predicate)
 
-        println("initOp = ${initOp.message()}")
-        println("diffOp1 = ${diffOp1.message()}")
-        println("initFilterOp = ${initFilterOp.message()}")
+        println("initOp = ${initOp.toString()}")
+        println("diffOp1 = ${diffOp1.toString()}")
+        println("initFilterOp = ${initFilterOp.toString()}")
 
         val operationList = OperationList(mutableList) { this.op = it }
 
         operation.invoke(operationList)
 
-        println("op = ${op.message()}")
+        println("op = ${op.toString()}")
 
         val (filterOp1, diffOp2) = Transformer.transform(op, diffOp1)
         val filterOp2 = filterOp(filterOp1, predicate)
 
         val filterOp = Composer.compose(filterOp1, filterOp2)
-        println("filterOp = ${filterOp.message()}")
+        println("filterOp = ${filterOp.toString()}")
 
         val actual1 = Composer.compose(initFilterOp, filterOp)
-        println("actual1 = ${actual1.message()}")
-        assertThat(actual1.message(), actual1.asIterable(), contains(expected))
+        println("actual1 = ${actual1.toString()}")
+        assertThat(actual1.toString(), actual1.asIterable(), contains(expected))
 
         val newInitOp = Composer.compose(initOp, op)
-        println("newInitOp = ${newInitOp.message()}")
-        assertThat(newInitOp.message(), newInitOp.asIterable(), contains(mutableList))
+        println("newInitOp = ${newInitOp.toString()}")
+        assertThat(newInitOp.toString(), newInitOp.asIterable(), contains(mutableList))
 
-        println("diffOp2 = ${diffOp2.message()}")
-        println("filterOp2 = ${filterOp2.message()}")
+        println("diffOp2 = ${diffOp2.toString()}")
+        println("filterOp2 = ${filterOp2.toString()}")
 
         val diffOp3 = Composer.compose(diffOp2, filterOp2)
-        println("diffOp3 = ${diffOp3.message()}")
+        println("diffOp3 = ${diffOp3.toString()}")
 
         val actual2 = Composer.compose(newInitOp, diffOp3)
-        println("actual2 = ${actual2.message()}")
-        assertThat(actual2.message(), actual2.asIterable(), contains(expected))
+        println("actual2 = ${actual2.toString()}")
+        assertThat(actual2.toString(), actual2.asIterable(), contains(expected))
     }
 
     private fun contains(list: List<String>) : Matcher<Iterable<ListComponent<String>>> = if (list.isEmpty()) {
