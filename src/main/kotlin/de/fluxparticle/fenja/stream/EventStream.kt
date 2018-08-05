@@ -22,7 +22,7 @@ abstract class EventStream<T> : Dependency<T> {
 
     infix fun <S> zipWith(other: EventStream<S>) = ZipWithEventStreamBuilder(this, other)
 
-    infix fun <S> snapshot(expr: Expr<S>) = SnapshotBuilder(this, expr)
+    infix fun <S> snapshot(expr: Expr<S>) = SnapshotBuilder2(this, expr)
 
     infix fun gate(expr: Expr<Boolean>): EventStream<T> = GateEventStream(this, expr)
 
@@ -71,13 +71,15 @@ infix fun <T, R> EventStream<T?>.mapNotNull(func: (T) -> R): EventStream<R?> {
     return map { it?.let(func) }
 }
 
-class SnapshotBuilder<T, S>(private val source: EventStream<T>, private val expr: Expr<S>) {
+class SnapshotBuilder2<T, A>(private val source: EventStream<T>, private val exprA: Expr<A>) {
 
-    operator fun <R> invoke(func: (T, S) -> R): EventStream<R> = SnapshotEventStream(source, expr, func)
+    operator fun <R> invoke(func: (T, A) -> R): EventStream<R> = SnapshotEventStream2(source, exprA, func)
+
+    infix fun <B> and(exprB: Expr<B>) = SnapshotBuilder3(source, exprA, exprB)
 
 }
 
-class SnapshotEventStream<T, S, R>(private val source: EventStream<T>, private val expr: Expr<S>, private val func: (T, S) -> R) : EventStream<R>() {
+class SnapshotEventStream2<T, A, R>(private val source: EventStream<T>, private val exprA: Expr<A>, private val func: (T, A) -> R) : EventStream<R>() {
 
     private val buffer = Buffer<R>()
 
@@ -89,19 +91,55 @@ class SnapshotEventStream<T, S, R>(private val source: EventStream<T>, private v
         val transaction = source.getTransaction()
         if (transaction > buffer.getTransaction()) {
             val valueT = source.eval()
-            val valueS = expr.eval()
-            val value = func.invoke(valueT, valueS)
+            val valueA = exprA.eval()
+            val value = func.invoke(valueT, valueA)
             buffer.setValue(transaction, value)
         }
         return buffer.getValue()
     }
 
     override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, source) // expr
+        return visitor.visit(this, source) // exprA
     }
 
     override fun toString(): String {
-        return "($source snapshot $expr) {}"
+        return "($source snapshot $exprA) {}"
+    }
+
+}
+
+class SnapshotBuilder3<T, A, B>(private val source: EventStream<T>, private val exprA: Expr<A>, private val exprB: Expr<B>) {
+
+    operator fun <R> invoke(func: (T, A, B) -> R): EventStream<R> = SnapshotEventStream3(source, exprA, exprB, func)
+
+}
+
+class SnapshotEventStream3<T, A, B, R>(private val source: EventStream<T>, private val exprA: Expr<A>, private val exprB: Expr<B>, private val func: (T, A, B) -> R) : EventStream<R>() {
+
+    private val buffer = Buffer<R>()
+
+    override fun getTransaction(): Long {
+        return source.getTransaction()
+    }
+
+    override fun eval(): R {
+        val transaction = source.getTransaction()
+        if (transaction > buffer.getTransaction()) {
+            val valueT = source.eval()
+            val valueA = exprA.eval()
+            val valueB = exprB.eval()
+            val value = func.invoke(valueT, valueA, valueB)
+            buffer.setValue(transaction, value)
+        }
+        return buffer.getValue()
+    }
+
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
+        return visitor.visit(this, source) // exprA exprB
+    }
+
+    override fun toString(): String {
+        return "($source snapshot $exprA and $exprB) {}"
     }
 
 }
