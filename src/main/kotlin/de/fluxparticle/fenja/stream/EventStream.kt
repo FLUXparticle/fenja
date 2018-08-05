@@ -24,6 +24,41 @@ abstract class EventStream<T> : Dependency<T> {
 
     infix fun <S> snapshot(expr: Expr<S>) = SnapshotBuilder(this, expr)
 
+    infix fun gate(expr: Expr<Boolean>): EventStream<T> = GateEventStream(this, expr)
+
+}
+
+class GateEventStream<T>(private val source: EventStream<T>, private val expr: Expr<Boolean>) : EventStream<T>() {
+
+    private var lastTransaction: Long = 0
+
+    private val buffer = Buffer<T>()
+
+    override fun getTransaction(): Long {
+        val transaction = source.getTransaction()
+        if (transaction > lastTransaction) {
+            val predicate = expr.eval()
+            if (predicate) {
+                val value = source.eval()
+                buffer.setValue(transaction, value)
+            }
+            lastTransaction = transaction
+        }
+        return buffer.getTransaction()
+    }
+
+    override fun eval(): T {
+        return buffer.getValue()
+    }
+
+    override fun <R> accept(visitor: DependencyVisitor<R>): R {
+        return visitor.visit(this, source) // expr
+    }
+
+    override fun toString(): String {
+        return "$source gate $expr"
+    }
+
 }
 
 fun <T> EventStream<T?>.filterNotNull(): EventStream<T> {

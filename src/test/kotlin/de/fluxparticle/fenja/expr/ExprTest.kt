@@ -48,20 +48,20 @@ class ExprTest {
 
     @Test
     fun map() {
-        r = a { it + 2 }
+        r = a map { it + 2 }
         ruleToString(r) shouldBeEqualTo "a {}"
     }
 
     @Test
     fun combine2() {
-        r = (a..b) { a, b -> a + b }
-        ruleToString(r) shouldBeEqualTo "(a..b) {}"
+        r = (a combine b) { a, b -> a + b }
+        ruleToString(r) shouldBeEqualTo "(a combine b) {}"
     }
 
     @Test
     fun combine3() {
-        r = (a..b..c) { a, b, c -> a + b + c }
-        ruleToString(r) shouldBeEqualTo "(a..b..c) {}"
+        r = (a combine b combine c) { a, b, c -> a + b + c }
+        ruleToString(r) shouldBeEqualTo "(a combine b combine c) {}"
     }
 
     /*

@@ -2,11 +2,16 @@ package de.fluxparticle.fenja.stream
 
 import de.fluxparticle.fenja.dependency.*
 import de.fluxparticle.fenja.logger.FenjaSystemLogger
+import javafx.animation.KeyFrame
+import javafx.animation.Timeline
 import javafx.beans.property.Property
 import javafx.beans.value.ObservableValue
+import javafx.event.ActionEvent
 import javafx.event.Event
+import javafx.event.EventHandler
 import javafx.event.EventType
 import javafx.scene.Node
+import javafx.util.Duration
 
 /**
  * Created by sreinck on 05.08.18.
@@ -52,6 +57,14 @@ fun <T : Event> EventStreamSource<T>.bind(node: Node, eventType: EventType<T>) {
 
 infix fun <T> EventStreamSource<T>.bind(observableValue: ObservableValue<T>) {
     observableValue.addListener { _, _, newValue -> sendValue(newValue) }
+}
+
+infix fun EventStreamSource<Unit>.ticker(duration: Duration) {
+    val eventHandler = EventHandler<ActionEvent> { sendValue(Unit) }
+    val keyFrame = KeyFrame(duration, eventHandler)
+    val timeline = Timeline(keyFrame)
+    timeline.cycleCount = Timeline.INDEFINITE
+    timeline.play()
 }
 
 class EventStreamRelay<T>(name: String, private val logger: FenjaSystemLogger) : NamedEventStream<T>(name), UpdateDependency<T> {

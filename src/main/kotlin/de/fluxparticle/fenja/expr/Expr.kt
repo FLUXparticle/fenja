@@ -8,9 +8,9 @@ import de.fluxparticle.fenja.dependency.DependencyVisitor
  */
 abstract class Expr<T> : Dependency<T> {
 
-    operator fun <R> invoke(func: (T) -> R) : Expr<R> = MapExpr(this, func)
+    infix fun <R> map(func: (T) -> R) : Expr<R> = MapExpr(this, func)
 
-    operator fun <S> rangeTo(other: Expr<S>) = CombineExprBuilder2(this, other)
+    infix fun <S> combine(other: Expr<S>) = CombineExprBuilder2(this, other)
 
 
     open fun asFactor(): String = toString()
@@ -70,7 +70,7 @@ class CombineExpr2<A, B, R>(
     override fun toString(): String {
         val resultA = paramA.asFactor()
         val resultB = paramB.asFactor()
-        return "($resultA..$resultB) {}"
+        return "($resultA combine $resultB) {}"
     }
 
     override fun <R> accept(visitor: DependencyVisitor<R>): R {
@@ -86,7 +86,7 @@ class CombineExprBuilder2<A, B>(
 
     operator fun <R> invoke(func: (A, B) -> R) : Expr<R> = CombineExpr2(paramA, paramB, func)
 
-    operator fun <C> rangeTo(next: Expr<C>) = CombineExprBuilder3(paramA, paramB, next)
+    infix fun <C> combine(next: Expr<C>) = CombineExprBuilder3(paramA, paramB, next)
 
 }
 
@@ -110,7 +110,7 @@ class CombineExpr3<A, B, C, R>(
         val resultA = paramA.asFactor()
         val resultB = paramB.asFactor()
         val resultC = paramC.asFactor()
-        return "($resultA..$resultB..$resultC) {}"
+        return "($resultA combine $resultB combine $resultC) {}"
     }
 
     override fun <R> accept(visitor: DependencyVisitor<R>): R {
