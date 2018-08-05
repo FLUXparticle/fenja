@@ -34,7 +34,7 @@ class InputExpr<T>(name: String, private val logger: FenjaSystemLogger) : NamedE
         get() = super.value
         set(value) {
             super.value = value
-            logger.updateSource(this)
+            logger.updateSource(this, value)
             updates?.forEach { it.update() }
         }
 
@@ -70,7 +70,7 @@ class OutputExpr<T>(name: String, private val logger: FenjaSystemLogger) : Named
 
     override fun update() {
         value = rule.eval()
-        logger.executeUpdate(this)
+        logger.executeUpdate(this, value)
     }
 
     override fun toString(): String {

@@ -18,6 +18,10 @@ abstract class NamedEventStream<T>(override val name: String) : EventStream<T>()
         return buffer.getValue()
     }
 
+    override fun toString(): String {
+        return name
+    }
+
 }
 
 class EventStreamSource<T>(name: String, private val logger: FenjaSystemLogger) : NamedEventStream<T>(name), SourceDependency<T> {
@@ -26,7 +30,7 @@ class EventStreamSource<T>(name: String, private val logger: FenjaSystemLogger) 
 
     fun sendValue(transaction: Long, value: T) {
         buffer.setValue(transaction, value)
-        logger.updateSource(this)
+        logger.updateSource(this, value)
         updates?.forEach { it.update() }
     }
 
@@ -53,7 +57,7 @@ class EventStreamRelay<T>(name: String, private val logger: FenjaSystemLogger) :
         if (transaction > buffer.getTransaction()) {
             val value = source.eval()
             buffer.setValue(transaction, value)
-            logger.executeUpdate(this)
+            logger.executeUpdate(this, value)
         }
     }
 

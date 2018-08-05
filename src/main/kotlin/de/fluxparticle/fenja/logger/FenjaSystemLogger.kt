@@ -8,9 +8,9 @@ import de.fluxparticle.fenja.dependency.UpdateDependency
  */
 interface FenjaSystemLogger {
 
-    fun updateSource(source: SourceDependency<*>)
+    fun updateSource(source: SourceDependency<*>, value: Any?)
 
-    fun executeUpdate(update: UpdateDependency<*>)
+    fun executeUpdate(update: UpdateDependency<*>, value: Any?)
 
     fun ruleLists(headline: String, map: Map<String, Collection<String>>)
 

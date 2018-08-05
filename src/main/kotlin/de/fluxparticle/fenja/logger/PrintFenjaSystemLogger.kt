@@ -12,19 +12,19 @@ class PrintFenjaSystemLogger(private val out: PrintWriter) : FenjaSystemLogger {
 
     constructor(stream: OutputStream) : this(PrintWriter(stream, true))
 
-    override fun updateSource(source: SourceDependency<*>) {
-        // TODO out.println("===== ${source.name} = ${source.value} =====")
+    override fun updateSource(source: SourceDependency<*>, value: Any?) {
+         out.println("===== ${source.name} = $value =====")
     }
 
-    override fun executeUpdate(update: UpdateDependency<*>) {
-        // TODO out.println("${update.rule} -> ${update.name} = ${update.value}")
+    override fun executeUpdate(update: UpdateDependency<*>, value: Any?) {
+        out.println("${update.getDependency()} -> ${update.name} = $value")
     }
 
     override fun ruleLists(headline: String, map: Map<String, Collection<String>>) {
         out.println("===== $headline ======")
         map.entries
                 .sortedBy { it.key }
-                .forEach { (key, value) -> println(key + ": " + value) }
+                .forEach { (key, value) -> println("$key: ${value.sorted()}") }
     }
 
 }

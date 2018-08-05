@@ -35,9 +35,8 @@ class EventStreamTest {
 
         input.sendValue(1, 42)
 
-        verify(mockLogger).updateSource(any())
-
-        verify(mockLogger).executeUpdate(any())
+        verify(mockLogger).updateSource(any(), any())
+        verify(mockLogger).executeUpdate(any(), any())
     }
 
 }

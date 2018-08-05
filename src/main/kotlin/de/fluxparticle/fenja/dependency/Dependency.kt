@@ -9,4 +9,6 @@ interface Dependency<T> {
 
     fun <R> accept(visitor: DependencyVisitor<R>): R
 
+    override fun toString(): String
+
 }

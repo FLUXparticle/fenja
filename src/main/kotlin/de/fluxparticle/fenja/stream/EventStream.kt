@@ -42,7 +42,7 @@ class EventStreamHoldExpr<T>(private val source: EventStream<T>, initValue: T) :
     }
 
     override fun toString(): String {
-        TODO("not implemented")
+        return source.toString()
     }
 
     override fun <R> accept(visitor: DependencyVisitor<R>): R {
@@ -79,6 +79,10 @@ class ZipWithEventStream<T, S, R>(private val source1: EventStream<T>, private v
         return visitor.visit(this, source1, source2)
     }
 
+    override fun toString(): String {
+        return "$source1 zipWith $source2 {}"
+    }
+
 }
 
 class OrElseEventStream<T>(private val source1: EventStream<T>, private val source2: EventStream<T>) : EventStream<T>() {
@@ -101,6 +105,10 @@ class OrElseEventStream<T>(private val source1: EventStream<T>, private val sour
 
     override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, source1, source2)
+    }
+
+    override fun toString(): String {
+        return "$source1 orElse $source2"
     }
 
 }
@@ -131,6 +139,10 @@ class FilterEventStream<T>(private val source: EventStream<T>, private val predi
         return visitor.visit(this, source)
     }
 
+    override fun toString(): String {
+        return "$source filter {}"
+    }
+
 }
 
 class MapEventStream<T, R>(private val source: EventStream<T>, private val func: (T) -> R) : EventStream<R>() {
@@ -146,6 +158,10 @@ class MapEventStream<T, R>(private val source: EventStream<T>, private val func:
 
     override fun <R> accept(visitor: DependencyVisitor<R>): R {
         return visitor.visit(this, source)
+    }
+
+    override fun toString(): String {
+        return "$source {}"
     }
 
 }

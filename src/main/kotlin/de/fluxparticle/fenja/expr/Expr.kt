@@ -12,7 +12,6 @@ abstract class Expr<T> : Dependency<T> {
 
     operator fun <S> rangeTo(other: Expr<S>) = CombineExprBuilder2(this, other)
 
-    abstract override fun toString(): String
 
     open fun asFactor(): String = toString()
 

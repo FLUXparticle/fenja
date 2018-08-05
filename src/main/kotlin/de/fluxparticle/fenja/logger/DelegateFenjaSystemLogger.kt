@@ -12,12 +12,12 @@ class DelegateFenjaSystemLogger(private var delegate: FenjaSystemLogger) : Fenja
         this.delegate = delegate
     }
 
-    override fun updateSource(source: SourceDependency<*>) {
-        delegate.updateSource(source)
+    override fun updateSource(source: SourceDependency<*>, value: Any?) {
+        delegate.updateSource(source, value)
     }
 
-    override fun executeUpdate(update: UpdateDependency<*>) {
-        delegate.executeUpdate(update)
+    override fun executeUpdate(update: UpdateDependency<*>, value: Any?) {
+        delegate.executeUpdate(update, value)
     }
 
     override fun ruleLists(headline: String, map: Map<String, Collection<String>>) {

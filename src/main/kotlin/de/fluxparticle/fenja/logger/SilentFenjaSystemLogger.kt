@@ -8,11 +8,11 @@ import de.fluxparticle.fenja.dependency.UpdateDependency
  */
 class SilentFenjaSystemLogger : FenjaSystemLogger {
 
-    override fun updateSource(source: SourceDependency<*>) {
+    override fun updateSource(source: SourceDependency<*>, value: Any?) {
         // empty
     }
 
-    override fun executeUpdate(update: UpdateDependency<*>) {
+    override fun executeUpdate(update: UpdateDependency<*>, value: Any?) {
         // empty
     }
 

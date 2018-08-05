@@ -8,14 +8,14 @@ import de.fluxparticle.fenja.dependency.UpdateDependency
  */
 class TeeFenjaSystemLogger(private val left: FenjaSystemLogger, private val right: FenjaSystemLogger) : FenjaSystemLogger {
 
-    override fun updateSource(source: SourceDependency<*>) {
-        left.updateSource(source)
-        right.updateSource(source)
+    override fun updateSource(source: SourceDependency<*>, value: Any?) {
+        left.updateSource(source, value)
+        right.updateSource(source, value)
     }
 
-    override fun executeUpdate(update: UpdateDependency<*>) {
-        left.executeUpdate(update)
-        right.executeUpdate(update)
+    override fun executeUpdate(update: UpdateDependency<*>, value: Any?) {
+        left.executeUpdate(update, value)
+        right.executeUpdate(update, value)
     }
 
     override fun ruleLists(headline: String, map: Map<String, Collection<String>>) {
