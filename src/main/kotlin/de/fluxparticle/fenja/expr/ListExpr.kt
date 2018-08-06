@@ -3,18 +3,18 @@ package de.fluxparticle.fenja.expr
 import de.fluxparticle.fenja.dependency.DependencyVisitor
 import de.fluxparticle.fenja.operation.*
 import de.fluxparticle.fenja.stream.EventStream
+import de.fluxparticle.fenja.stream.InitEventStream
 
 /**
  * Created by sreinck on 31.07.18.
  */
-class ListExpr<T> internal constructor(
-        private val source: EventStream<ListOperation<T>>,
-        initList: List<T>
+open class ListExpr<T> internal constructor(
+        internal val source: EventStream<ListOperation<T>>
 ): Expr<List<T>>() {
 
-    private var lastTransaction: Long = 0
+    private var lastTransaction: Long = -1
 
-    private var mutableList = initList.toMutableList()
+    private var mutableList = mutableListOf<T>()
 
     internal val list: List<T>
         get() = mutableList
@@ -46,10 +46,12 @@ class ListExpr<T> internal constructor(
 }
 
 infix fun <T> EventStream<ListOperation<T>>.hold(initList: List<T>): ListExpr<T> {
-    return ListExpr(this, initList)
+    val initEvent = ListOperation(initList.map { ListAddComponent(it) })
+    val source = InitEventStream(this, initEvent)
+    return ListExpr(source)
 }
 
-private fun <T> Expr<List<T>>.asListExpr(): ListExpr<T> {
+internal fun <T> Expr<List<T>>.asListExpr(): ListExpr<T> {
     return when (this) {
         is OutputExpr -> getDependency() as ListExpr<T>
         else -> this as ListExpr<T>

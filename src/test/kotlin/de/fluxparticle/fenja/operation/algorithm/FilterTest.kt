@@ -61,9 +61,7 @@ class FilterTest(
         }
 
         fun filterOp(op: ListOperation<String>, predicate: (String) -> Boolean): ListOperation<String> {
-            val filter = Filter(predicate)
-            op.forEach { it.apply(filter) }
-            return filter.build()
+            return op.apply(Filter(predicate))
         }
 
     }
@@ -87,30 +85,30 @@ class FilterTest(
 
         operation.invoke(operationList)
 
-        println("op = ${op.toString()}")
+        println("op = $op")
 
         val (filterOp1, diffOp2) = Transformer.transform(op, diffOp1)
         val filterOp2 = filterOp(filterOp1, predicate)
 
         val filterOp = Composer.compose(filterOp1, filterOp2)
-        println("filterOp = ${filterOp.toString()}")
+        println("filterOp = $filterOp")
 
         val actual1 = Composer.compose(initFilterOp, filterOp)
-        println("actual1 = ${actual1.toString()}")
+        println("actual1 = $actual1")
         assertThat(actual1.toString(), actual1.asIterable(), contains(expected))
 
         val newInitOp = Composer.compose(initOp, op)
-        println("newInitOp = ${newInitOp.toString()}")
+        println("newInitOp = $newInitOp")
         assertThat(newInitOp.toString(), newInitOp.asIterable(), contains(mutableList))
 
-        println("diffOp2 = ${diffOp2.toString()}")
-        println("filterOp2 = ${filterOp2.toString()}")
+        println("diffOp2 = $diffOp2")
+        println("filterOp2 = $filterOp2")
 
         val diffOp3 = Composer.compose(diffOp2, filterOp2)
-        println("diffOp3 = ${diffOp3.toString()}")
+        println("diffOp3 = $diffOp3")
 
         val actual2 = Composer.compose(newInitOp, diffOp3)
-        println("actual2 = ${actual2.toString()}")
+        println("actual2 = $actual2")
         assertThat(actual2.toString(), actual2.asIterable(), contains(expected))
     }
 
