@@ -27,7 +27,9 @@ operator fun Expr<Double>.div(other: Double) = div(ConstExpr(other))
 
 class NegateExpr(
         argument: Expr<Double>
-) : UpdateExpr<Double>(NegDependency(argument.dependency)) {
+) : UpdateExpr<Double>() {
+
+    override val dependency: UpdateDependency<Double> = NegDependency(argument.dependency)
 
     private class NegDependency(
             private val argument: Dependency<Double>
@@ -56,7 +58,9 @@ class NegateExpr(
 class PlusExpr(
         left: Expr<Double>,
         right: Expr<Double>
-) : UpdateExpr<Double>(PlusDependency(left.dependency, right.dependency)) {
+) : UpdateExpr<Double>() {
+
+    override val dependency: UpdateDependency<Double> = PlusDependency(left.dependency, right.dependency)
 
     private class PlusDependency(
             private val left: Dependency<Double>,
@@ -89,7 +93,9 @@ class PlusExpr(
 class MinusExpr(
         left: Expr<Double>,
         right: Expr<Double>
-) : UpdateExpr<Double>(MinusDependency(left.dependency, right.dependency)) {
+) : UpdateExpr<Double>() {
+
+    override val dependency: UpdateDependency<Double> = MinusDependency(left.dependency, right.dependency)
 
     private class MinusDependency(
             private val left: Dependency<Double>,
@@ -122,7 +128,9 @@ class MinusExpr(
 class TimesExpr(
         left: Expr<Double>,
         right: Expr<Double>
-) : UpdateExpr<Double>(TimesDependency(left.dependency, right.dependency)) {
+) : UpdateExpr<Double>() {
+
+    override val dependency: UpdateDependency<Double> = TimesDependency(left.dependency, right.dependency)
 
     private class TimesDependency(
             private val left: Dependency<Double>,
@@ -156,7 +164,9 @@ class TimesExpr(
 class DivExpr(
         left: Expr<Double>,
         right: Expr<Double>
-) : UpdateExpr<Double>(DivDependency(left.dependency, right.dependency)) {
+) : UpdateExpr<Double>() {
+
+    override val dependency: UpdateDependency<Double> = DivDependency(left.dependency, right.dependency)
 
     private class DivDependency(
             private val left: Dependency<Double>,

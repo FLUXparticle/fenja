@@ -5,35 +5,49 @@ import de.fluxparticle.fenja.dependency.UpdateDependency
 import de.fluxparticle.fenja.operation.ListOperation
 import de.fluxparticle.fenja.operation.algorithm.Composer
 import de.fluxparticle.fenja.operation.algorithm.Filter
+import de.fluxparticle.fenja.operation.algorithm.Inverter
 import de.fluxparticle.fenja.operation.algorithm.Transformer
+import de.fluxparticle.fenja.stream.EventStream
 import de.fluxparticle.fenja.stream.UpdateEventStream
 
 /**
  * Created by sreinck on 06.08.18.
  */
 class FilterListExpr<T> internal constructor(
-        source: FilterListOperationEventStream<T>
-): ListExpr<T>(ListDependency(source.dependency)) {
+        override val source: FilterListOperationEventStream<T>,
+        predicateExpr: Expr<(T) -> Boolean>
+) : ListExpr<T>() {
+
+    override val dependency: ListDependency<T> = FilterListDependency(source.dependency, predicateExpr.dependency)
+
+    private class FilterListDependency<T>(
+            source: Dependency<ListOperation<T>>,
+            private val predicateExpr: Dependency<(T) -> Boolean>
+            ) : ListDependency<T>(source) {
+
+    }
+
+    fun reverseTransform(operation: ListOperation<T>): ListOperation<T> {
+        val inverseDiffOp = source.dependency.diffOp.apply(Inverter())
+        val (reverseTransformation, _) = Transformer.transform(operation, inverseDiffOp)
+        return reverseTransformation
+    }
 
 }
 
 internal class FilterListOperationEventStream<T>(
-        listExpr: ListExpr<T>,
+        source: EventStream<ListOperation<T>>,
         predicateExpr: Expr<(T) -> Boolean>
-) : UpdateEventStream<ListOperation<T>>(FilterListOperationDependency(listExpr.dependency, predicateExpr.dependency)) {
+) : UpdateEventStream<ListOperation<T>>() {
 
-    private class FilterListOperationDependency<T>(
-            listDependency: ListDependency<T>,
+    override val dependency = FilterListOperationDependency(source.dependency, predicateExpr.dependency)
+
+    internal class FilterListOperationDependency<T>(
+            private val source: Dependency<ListOperation<T>>,
             private val predicateExpr: Dependency<(T) -> Boolean>
     ) : UpdateDependency<ListOperation<T>>() {
 
-        private var diffOp: ListOperation<T> = ListOperation(emptyList())
-
-        private val source = listDependency.source
-
-//    private var lastTransaction: Long = -1L
-
-//    private var lastChangeTransaction: Long = -1L
+        internal var diffOp: ListOperation<T> = ListOperation(emptyList())
 
         override fun update() {
             val transaction = source.getTransaction()
@@ -58,12 +72,7 @@ internal class FilterListOperationEventStream<T>(
         override fun toUpdateString(): String {
             return "$source filter $predicateExpr"
         }
-    }
-
-    /*
-    fun <T> reverseTransform(operation: ListOperation<T>): ListOperation<T> {
 
     }
-*/
 
 }

@@ -13,14 +13,18 @@ import de.fluxparticle.fenja.stream.InitEventStream
 /**
  * Created by sreinck on 31.07.18.
  */
-abstract class ListExpr<T> internal constructor(override val dependency: ListDependency<T>) : UpdateExpr<List<T>>(dependency) {
+abstract class ListExpr<T> internal constructor() : UpdateExpr<List<T>>() {
+
+    abstract override val dependency: ListDependency<T>
+
+    protected abstract val source: EventStream<ListOperation<T>>
 
     protected val list: ReadList<T>
         get() = dependency.list
 
-    infix fun filter(predicateExpr: Expr<(T) -> Boolean>): ListExpr<T> {
-        val eventStream = FilterListOperationEventStream(this, predicateExpr)
-        return FilterListExpr(eventStream)
+    infix fun filter(predicateExpr: Expr<(T) -> Boolean>): FilterListExpr<T> {
+        val eventStream = FilterListOperationEventStream(source, predicateExpr)
+        return FilterListExpr(eventStream, predicateExpr)
     }
 
     fun buildAddOperation(value: T): ListOperation<T> {
@@ -90,33 +94,32 @@ abstract class ListExpr<T> internal constructor(override val dependency: ListDep
 
 }
 
-internal class ListDependency<T>(
+internal abstract class ListDependency<T>(
         internal val source: Dependency<ListOperation<T>>
 ) : UpdateDependency<List<T>>() {
-
-    private var lastTransaction: Long = -1
 
     private val loopList = LoopList<T>()
 
     internal val list: ReadList<T>
         get() = loopList
 
-    init {
-        buffer.setValue(0L, LoopList())
-    }
-
     internal fun loopList(list: ReadWriteList<T>) {
         loopList.loop(list)
     }
 
+    init {
+        buffer.setValue(0L, LoopList())
+    }
+
     override fun update() {
         val transaction = source.getTransaction()
-        if (transaction > lastTransaction) {
+        if (transaction > buffer.getTransaction()) {
+
             val value = source.getValue()
             val readWriteList = buffer.getValue() as ReadWriteList<T>
             value.apply(ReadWriteListAdapter(readWriteList))
             buffer.setValue(transaction, readWriteList)
-            lastTransaction = transaction
+
         }
     }
 
@@ -137,8 +140,14 @@ internal class ListDependency<T>(
 }
 
 class HoldListExpr<T> internal constructor(
-        internal val source: EventStream<ListOperation<T>>
-): ListExpr<T>(ListDependency(source.dependency)) {
+        override val source: EventStream<ListOperation<T>>
+): ListExpr<T>() {
+
+    override val dependency: ListDependency<T> = HoldListDependency(source.dependency)
+
+    private class HoldListDependency<T>(source: Dependency<ListOperation<T>>) : ListDependency<T>(source) {
+
+    }
 
 }
 

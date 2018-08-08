@@ -21,7 +21,9 @@ class InputEventStream<T> internal constructor(
         name: String,
         transactionProvider: TransactionProvider,
         logger: FenjaSystemLogger
-) : SourceEventStream<T>(SourceDependency<T>(name, transactionProvider, logger)) {
+) : SourceEventStream<T>() {
+
+    override val dependency = SourceDependency<T>(name, transactionProvider, logger)
 
     fun sendValue(value: T) {
         dependency.executeUpdates(value)

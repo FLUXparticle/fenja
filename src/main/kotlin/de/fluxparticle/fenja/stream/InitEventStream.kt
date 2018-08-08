@@ -9,7 +9,9 @@ import de.fluxparticle.fenja.dependency.UpdateDependency
 class InitEventStream<T>(
         source: EventStream<T>,
         initEvent: T
-) : UpdateEventStream<T>(InitDependency(source.dependency, initEvent)) {
+) : UpdateEventStream<T>() {
+
+    override val dependency: UpdateDependency<T> = InitDependency(source.dependency, initEvent)
 
     private class InitDependency<T>(private val source: Dependency<T>, initEvent: T) : UpdateDependency<T>() {
 

@@ -15,7 +15,9 @@ infix fun Expr<Boolean>.or(other: Expr<Boolean>) = OrExpr(this, other)
 
 class NotExpr(
         argument: Expr<Boolean>
-) : UpdateExpr<Boolean>(NotDependency(argument.dependency)) {
+) : UpdateExpr<Boolean>() {
+
+    override val dependency: UpdateDependency<Boolean> = NotDependency(argument.dependency)
 
     private class NotDependency(
             private val argument: Dependency<Boolean>
@@ -44,7 +46,9 @@ class NotExpr(
 class AndExpr(
         left: Expr<Boolean>,
         right: Expr<Boolean>
-) : UpdateExpr<Boolean>(AndDependency(left.dependency, right.dependency)) {
+) : UpdateExpr<Boolean>() {
+
+    override val dependency: UpdateDependency<Boolean> = AndDependency(left.dependency, right.dependency)
 
     private class AndDependency(
             private val left: Dependency<Boolean>,
@@ -76,7 +80,9 @@ class AndExpr(
 class OrExpr(
         left: Expr<Boolean>,
         right: Expr<Boolean>
-) : UpdateExpr<Boolean>(OrDependency(left.dependency, right.dependency)) {
+) : UpdateExpr<Boolean>() {
+
+    override val dependency: UpdateDependency<Boolean> = OrDependency(left.dependency, right.dependency)
 
     private class OrDependency(
             private val left: Dependency<Boolean>,

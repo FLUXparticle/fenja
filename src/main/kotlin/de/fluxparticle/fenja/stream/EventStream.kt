@@ -10,7 +10,9 @@ import kotlin.math.max
 /**
  * Created by sreinck on 04.08.18.
  */
-abstract class EventStream<T> internal constructor(internal open val dependency: Dependency<T>) {
+abstract class EventStream<T> internal constructor() {
+
+    internal abstract val dependency: Dependency<T>
 
     infix fun <R> map(func: (T) -> R): UpdateEventStream<R> = MapEventStream(this, func)
 
@@ -24,11 +26,15 @@ abstract class EventStream<T> internal constructor(internal open val dependency:
 
 }
 
-abstract class UpdateEventStream<T> internal constructor(override val dependency: UpdateDependency<T>) : EventStream<T>(dependency) {
+abstract class UpdateEventStream<T> internal constructor() : EventStream<T>() {
+
+    abstract override val dependency: UpdateDependency<T>
 
 }
 
-abstract class SourceEventStream<T> internal constructor(override val dependency: SourceDependency<T>) : EventStream<T>(dependency) {
+abstract class SourceEventStream<T> internal constructor() : EventStream<T>() {
+
+    abstract override val dependency: SourceDependency<T>
 
 }
 
@@ -45,7 +51,9 @@ infix fun <T, R> EventStream<T?>.mapNotNull(func: (T) -> R): UpdateEventStream<R
 class EventStreamHoldExpr<T>(
         source: EventStream<T>,
         initValue: T
-) : UpdateExpr<T>(EventStreamHoldDependency(source.dependency, initValue)) {
+) : UpdateExpr<T>() {
+
+    override val dependency: UpdateDependency<T> = EventStreamHoldDependency(source.dependency, initValue)
 
     private class EventStreamHoldDependency<T>(
             private val source: Dependency<T>,
@@ -86,7 +94,9 @@ class ZipWithEventStream<A, B, R>(
         sourceA: EventStream<A>,
         sourceB: EventStream<B>,
         func: (A, B) -> R
-) : UpdateEventStream<R>(ZipWithDependency(sourceA.dependency, sourceB.dependency, func)) {
+) : UpdateEventStream<R>() {
+
+    override val dependency: UpdateDependency<R> = ZipWithDependency(sourceA.dependency, sourceB.dependency, func)
 
     private class ZipWithDependency<A, B, R>(
             private val sourceA: Dependency<A>,
@@ -125,7 +135,9 @@ class ZipWithEventStream<A, B, R>(
 class OrElseEventStream<T>(
         source1: EventStream<T>,
         source2: EventStream<T>
-) : UpdateEventStream<T>(OrElseDependency(source1.dependency, source2.dependency)) {
+) : UpdateEventStream<T>() {
+
+    override val dependency: UpdateDependency<T> = OrElseDependency(source1.dependency, source2.dependency)
 
     private class OrElseDependency<T>(
             private val source1: Dependency<T>,
@@ -158,7 +170,9 @@ class OrElseEventStream<T>(
 class FilterEventStream<T>(
         source: EventStream<T>,
         predicate: (T) -> Boolean
-) : UpdateEventStream<T>(FilterDependency(source.dependency, predicate)) {
+) : UpdateEventStream<T>() {
+
+    override val dependency: UpdateDependency<T> = FilterDependency(source.dependency, predicate)
 
     private class FilterDependency<T>(
             private val source: Dependency<T>,
@@ -194,6 +208,8 @@ class FilterEventStream<T>(
 class MapEventStream<T, R>(
         source: EventStream<T>,
         func: (T) -> R
-) : UpdateEventStream<R>(MapDependency(source.dependency, func)) {
+) : UpdateEventStream<R>() {
+
+    override val dependency: UpdateDependency<R> = MapDependency(source.dependency, func)
 
 }

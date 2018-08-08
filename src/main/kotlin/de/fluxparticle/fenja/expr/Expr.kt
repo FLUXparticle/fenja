@@ -11,7 +11,9 @@ import kotlin.math.max
 /**
  * Created by sreinck on 03.06.18.
  */
-abstract class Expr<T> internal constructor(internal open val dependency: Dependency<T>) {
+abstract class Expr<T> internal constructor() {
+
+    internal abstract val dependency: Dependency<T>
 
     fun sample(): T = dependency.getValue()
 
@@ -21,7 +23,9 @@ abstract class Expr<T> internal constructor(internal open val dependency: Depend
 
 }
 
-abstract class UpdateExpr<T> internal constructor(override val dependency: UpdateDependency<T>) : Expr<T>(dependency) {
+abstract class UpdateExpr<T> internal constructor() : Expr<T>() {
+
+    abstract override val dependency: UpdateDependency<T>
 
     override fun toString(): String {
         return dependency.toUpdateString()
@@ -33,7 +37,9 @@ infix fun <T> Property<T>.bind(expr: UpdateExpr<T>) {
     expr.dependency.loop(PropertyValue(this))
 }
 
-abstract class SourceExpr<T> internal constructor(override val dependency: SourceDependency<T>) : Expr<T>(dependency) {
+abstract class SourceExpr<T> internal constructor() : Expr<T>() {
+
+    abstract override val dependency: SourceDependency<T>
 
     override fun toString(): String {
         return dependency.toString()
@@ -41,7 +47,9 @@ abstract class SourceExpr<T> internal constructor(override val dependency: Sourc
 
 }
 
-class ConstExpr<T>(initValue: T) : UpdateExpr<T>(ConstDependency(initValue)) {
+class ConstExpr<T>(initValue: T) : UpdateExpr<T>() {
+
+    override val dependency: UpdateDependency<T> = ConstDependency(initValue)
 
     private class ConstDependency<T>(initValue: T) : UpdateDependency<T>() {
 
@@ -68,7 +76,9 @@ class ConstExpr<T>(initValue: T) : UpdateExpr<T>(ConstDependency(initValue)) {
 class MapExpr<T, R>(
         argument: Expr<T>,
         func: (T) -> R
-) : UpdateExpr<R>(MapDependency(argument.dependency, func)) {
+) : UpdateExpr<R>() {
+
+    override val dependency: UpdateDependency<R> = MapDependency(argument.dependency, func)
 
 }
 
@@ -87,7 +97,9 @@ class CombineExpr2<A, B, R>(
         paramA: Expr<A>,
         paramB: Expr<B>,
         func: (A, B) -> R
-) : UpdateExpr<R>(CombineDependency2(paramA.dependency, paramB.dependency, func)) {
+) : UpdateExpr<R>() {
+
+    override val dependency: UpdateDependency<R> = CombineDependency2(paramA.dependency, paramB.dependency, func)
 
     private class CombineDependency2<A, B, R>(
             private val paramA: Dependency<A>,
@@ -134,7 +146,9 @@ class CombineExpr3<A, B, C, R>(
         paramB: Expr<B>,
         paramC: Expr<C>,
         func: (A, B, C) -> R
-) : UpdateExpr<R>(CombineDependency3(paramA.dependency, paramB.dependency, paramC.dependency, func)) {
+) : UpdateExpr<R>() {
+
+    override val dependency: UpdateDependency<R> = CombineDependency3(paramA.dependency, paramB.dependency, paramC.dependency, func)
 
     private class CombineDependency3<A, B, C, R>(
             private val paramA: Dependency<A>,

@@ -12,7 +12,9 @@ class InputExpr<T> internal constructor(
         name: String,
         transactionProvider: TransactionProvider,
         logger: FenjaSystemLogger
-) : SourceExpr<T>(SourceDependency<T>(name, transactionProvider, logger)) {
+) : SourceExpr<T>() {
+
+    override val dependency = SourceDependency<T>(name, transactionProvider, logger)
 
     fun setValue(value: T) {
         dependency.executeUpdates(value)
