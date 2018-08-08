@@ -7,7 +7,8 @@ abstract class ForwardList<T>(private val source: MutableList<T> = mutableListOf
 
     final override fun get(index: Int): T = source[index]
 
-    final override fun size(): Int = source.size
+    final override val size: Int
+        get() = source.size
 
     final override fun add(index: Int, element: T) {
         addForward(index, element)

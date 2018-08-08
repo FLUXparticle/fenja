@@ -1,6 +1,8 @@
 package de.fluxparticle.fenja.expr
 
-import de.fluxparticle.fenja.dependency.DependencyVisitor
+import de.fluxparticle.fenja.dependency.Dependency
+import de.fluxparticle.fenja.dependency.UpdateDependency
+import kotlin.math.max
 
 /**
  * Created by sreinck on 01.08.18.
@@ -11,64 +13,96 @@ infix fun Expr<Boolean>.and(other: Expr<Boolean>) = AndExpr(this, other)
 
 infix fun Expr<Boolean>.or(other: Expr<Boolean>) = OrExpr(this, other)
 
-class NotExpr(private val argument: Expr<Boolean>) : Expr<Boolean>() {
+class NotExpr(
+        argument: Expr<Boolean>
+) : UpdateExpr<Boolean>(NotDependency(argument.dependency)) {
 
-    override fun eval(): Boolean {
-        val argumentResult = argument.eval()
-        return !argumentResult
+    private class NotDependency(
+            private val argument: Dependency<Boolean>
+    ) : UpdateDependency<Boolean>() {
+
+        override fun update() {
+            val transaction = argument.getTransaction()
+            if (transaction > buffer.getTransaction()) {
+                val value = argument.getValue()
+                val notValue = !value
+                buffer.setValue(transaction, notValue)
+            }
+        }
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(argument)
+        }
+
+        override fun toUpdateString(): String {
+            return "!$argument"
+        }
+
     }
-
-    override fun toString(): String {
-        val argumentResult = argument.asFactor()
-        return "!$argumentResult"
-    }
-
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, argument)
-    }
-
 }
 
-class AndExpr(private val left: Expr<Boolean>, private val right: Expr<Boolean>) : Expr<Boolean>() {
+class AndExpr(
+        left: Expr<Boolean>,
+        right: Expr<Boolean>
+) : UpdateExpr<Boolean>(AndDependency(left.dependency, right.dependency)) {
 
-    override fun asFactor(): String = "(${toString()})"
+    private class AndDependency(
+            private val left: Dependency<Boolean>,
+            private val right: Dependency<Boolean>
+    ) : UpdateDependency<Boolean>() {
 
-    override fun eval(): Boolean {
-        val leftResult = left.eval()
-        val rightResult = right.eval()
-        return leftResult and rightResult
+        override fun update() {
+            val transactionA = left.getTransaction()
+            val transactionB = right.getTransaction()
+            val transaction = max(transactionA, transactionB)
+            if (transaction > buffer.getTransaction()) {
+                val valueA = left.getValue()
+                val valueB = right.getValue()
+                val combined = valueA and valueB
+                buffer.setValue(transaction, combined)
+            }
+        }
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(left, right)
+        }
+
+        override fun toUpdateString(): String {
+            return "$left and $right"
+        }
     }
-
-    override fun toString(): String {
-        val leftResult = left.toString()
-        val rightResult = right.toString()
-        return "$leftResult and $rightResult"
-    }
-
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, left, right)
-    }
-
 }
 
-class OrExpr(private val left: Expr<Boolean>, private val right: Expr<Boolean>) : Expr<Boolean>() {
+class OrExpr(
+        left: Expr<Boolean>,
+        right: Expr<Boolean>
+) : UpdateExpr<Boolean>(OrDependency(left.dependency, right.dependency)) {
 
-    override fun asFactor(): String = "(${toString()})"
+    private class OrDependency(
+            private val left: Dependency<Boolean>,
+            private val right: Dependency<Boolean>
+    ) : UpdateDependency<Boolean>() {
 
-    override fun eval(): Boolean {
-        val leftResult = left.eval()
-        val rightResult = right.eval()
-        return leftResult or rightResult
-    }
+        override fun update() {
+            val transactionA = left.getTransaction()
+            val transactionB = right.getTransaction()
+            val transaction = max(transactionA, transactionB)
+            if (transaction > buffer.getTransaction()) {
+                val valueA = left.getValue()
+                val valueB = right.getValue()
+                val combined = valueA or valueB
+                buffer.setValue(transaction, combined)
+            }
+        }
 
-    override fun toString(): String {
-        val leftResult = left.toString()
-        val rightResult = right.toString()
-        return "$leftResult or $rightResult"
-    }
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(left, right)
+        }
 
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, left, right)
+        override fun toUpdateString(): String {
+            return "$left or $right"
+        }
+
     }
 
 }

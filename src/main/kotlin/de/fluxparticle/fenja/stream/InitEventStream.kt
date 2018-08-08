@@ -1,37 +1,38 @@
 package de.fluxparticle.fenja.stream
 
-import de.fluxparticle.fenja.dependency.DependencyVisitor
+import de.fluxparticle.fenja.dependency.Dependency
+import de.fluxparticle.fenja.dependency.UpdateDependency
 
 /**
  * Created by sreinck on 06.08.18.
  */
-class InitEventStream<T>(private val source: EventStream<T>, private val initEvent: T) : EventStream<T>() {
+class InitEventStream<T>(
+        source: EventStream<T>,
+        initEvent: T
+) : UpdateEventStream<T>(InitDependency(source.dependency, initEvent)) {
 
-    private var lastTransaction: Long = -1L
+    private class InitDependency<T>(private val source: Dependency<T>, initEvent: T) : UpdateDependency<T>() {
 
-    override fun getTransaction(): Long {
-        lastTransaction = if (lastTransaction < 0L) {
-            0L
-        } else {
-            source.getTransaction()
+        init {
+            buffer.setValue(0, initEvent)
         }
-        return lastTransaction
-    }
 
-    override fun eval(): T {
-        return if (lastTransaction == 0L) {
-            initEvent
-        } else {
-            source.eval()
+        override fun update() {
+            val transaction = source.getTransaction()
+            if (transaction > buffer.getTransaction()) {
+                val value = source.getValue()
+                buffer.setValue(transaction, value)
+            }
         }
-    }
 
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, source)
-    }
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(source)
+        }
 
-    override fun toString(): String {
-        return source.toString()
+        override fun toUpdateString(): String {
+            return source.toString()
+        }
+
     }
 
 }

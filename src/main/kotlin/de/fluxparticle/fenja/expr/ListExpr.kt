@@ -1,6 +1,11 @@
 package de.fluxparticle.fenja.expr
 
-import de.fluxparticle.fenja.dependency.DependencyVisitor
+import de.fluxparticle.fenja.dependency.Dependency
+import de.fluxparticle.fenja.dependency.UpdateDependency
+import de.fluxparticle.fenja.list.DelegatedList
+import de.fluxparticle.fenja.list.LoopList
+import de.fluxparticle.fenja.list.ReadList
+import de.fluxparticle.fenja.list.ReadWriteList
 import de.fluxparticle.fenja.operation.*
 import de.fluxparticle.fenja.stream.EventStream
 import de.fluxparticle.fenja.stream.InitEventStream
@@ -8,135 +13,146 @@ import de.fluxparticle.fenja.stream.InitEventStream
 /**
  * Created by sreinck on 31.07.18.
  */
-open class ListExpr<T> internal constructor(
-        internal val source: EventStream<ListOperation<T>>
-): Expr<List<T>>() {
+abstract class ListExpr<T> internal constructor(override val dependency: ListDependency<T>) : UpdateExpr<List<T>>(dependency) {
+
+    protected val list: ReadList<T>
+        get() = dependency.list
+
+    infix fun filter(predicateExpr: Expr<(T) -> Boolean>): ListExpr<T> {
+        val eventStream = FilterListOperationEventStream(this, predicateExpr)
+        return FilterListExpr(eventStream)
+    }
+
+    fun buildAddOperation(value: T): ListOperation<T> {
+        val index = list.size
+
+        val result = mutableListOf<ListComponent<T>>()
+        if (index > 0) {
+            result.add(ListRetainComponent(index))
+        }
+        result.add(ListAddComponent(value))
+
+        return ListOperation(result)
+    }
+
+    fun buildAddOperation(index: Int, value: T): ListOperation<T> {
+        val size = list.size
+
+        val result = mutableListOf<ListComponent<T>>()
+        if (index > 0) {
+            result.add(ListRetainComponent(index))
+        }
+        result.add(ListAddComponent(value))
+        if (index < size) {
+            result.add(ListRetainComponent(size - index))
+        }
+
+        return ListOperation(result)
+    }
+
+    fun buildSetOperation(index: Int, newValue: T): ListOperation<T> {
+        val size = list.size
+
+        if (index < 0 || index >= size) {
+            throw IndexOutOfBoundsException("index: $index size: $size")
+        }
+
+        val result = mutableListOf<ListComponent<T>>()
+        if (index > 0) {
+            result.add(ListRetainComponent(index))
+        }
+        result.add(ListSetComponent(list.get(index), newValue))
+        if (index < size - 1) {
+            result.add(ListRetainComponent(size - 1 - index))
+        }
+
+        return ListOperation(result)
+    }
+
+    fun buildRemoveOperation(index: Int): ListOperation<T> {
+        val size = list.size
+
+        if (index < 0 || index >= size) {
+            throw IndexOutOfBoundsException("index: $index size: $size")
+        }
+
+        val result = mutableListOf<ListComponent<T>>()
+        if (index > 0) {
+            result.add(ListRetainComponent(index))
+        }
+        result.add(ListRemoveComponent(list.get(index)))
+        if (index < size - 1) {
+            result.add(ListRetainComponent(size - 1 - index))
+        }
+
+        return ListOperation(result)
+    }
+
+}
+
+internal class ListDependency<T>(
+        internal val source: Dependency<ListOperation<T>>
+) : UpdateDependency<List<T>>() {
 
     private var lastTransaction: Long = -1
 
-    private var mutableList = mutableListOf<T>()
+    private val loopList = LoopList<T>()
 
-    internal val list: List<T>
-        get() = mutableList
+    internal val list: ReadList<T>
+        get() = loopList
 
-    internal fun replaceMutableList(mutableList: MutableList<T>) {
-        mutableList.clear()
-        mutableList.addAll(this.mutableList)
-        this.mutableList = mutableList
+    init {
+        buffer.setValue(0L, LoopList())
     }
 
-    override fun eval(): List<T> {
+    internal fun loopList(list: ReadWriteList<T>) {
+        loopList.loop(list)
+    }
+
+    override fun update() {
         val transaction = source.getTransaction()
         if (transaction > lastTransaction) {
-            val value = source.eval()
-            value.apply(ListOperationApplier(mutableList))
+            val value = source.getValue()
+            val readWriteList = buffer.getValue() as ReadWriteList<T>
+            value.apply(ReadWriteListAdapter(readWriteList))
+            buffer.setValue(transaction, readWriteList)
             lastTransaction = transaction
         }
-        return mutableList
     }
 
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, source)
+    override fun updateLoop() {
+        super.updateLoop()
+        val value = source.getValue()
+        value.apply(ReadWriteListAdapter(loopList))
     }
 
-    override fun toString(): String {
+    override fun getDependencies(): Sequence<Dependency<*>> {
+        return sequenceOf(source)
+    }
+
+    override fun toUpdateString(): String {
         return source.toString()
     }
+
+}
+
+class HoldListExpr<T> internal constructor(
+        internal val source: EventStream<ListOperation<T>>
+): ListExpr<T>(ListDependency(source.dependency)) {
 
 }
 
 infix fun <T> EventStream<ListOperation<T>>.hold(initList: List<T>): ListExpr<T> {
     val initEvent = ListOperation(initList.map { ListAddComponent(it) })
     val source = InitEventStream(this, initEvent)
-    return ListExpr(source)
+    return HoldListExpr(source)
 }
 
-internal fun <T> Expr<List<T>>.asListExpr(): ListExpr<T> {
-    return when (this) {
-        is OutputExpr -> getDependency() as ListExpr<T>
-        else -> this as ListExpr<T>
-    }
+infix fun <T> MutableList<T>.bind(listExpr: ListExpr<T>) {
+    listExpr.dependency.loopList(DelegatedList(this))
 }
 
-fun <T> Expr<List<T>>.buildAddOperation(value: T): ListOperation<T> {
-    val listExpr = asListExpr()
-
-    val index = listExpr.list.size
-
-    val result = mutableListOf<ListComponent<T>>()
-    if (index > 0) {
-        result.add(ListRetainComponent(index))
-    }
-    result.add(ListAddComponent(value))
-
-    return ListOperation(result)
-}
-
-fun <T> Expr<List<T>>.buildAddOperation(index: Int, value: T): ListOperation<T> {
-    val listExpr = asListExpr()
-
-    val size = listExpr.list.size
-
-    val result = mutableListOf<ListComponent<T>>()
-    if (index > 0) {
-        result.add(ListRetainComponent(index))
-    }
-    result.add(ListAddComponent(value))
-    if (index < size) {
-        result.add(ListRetainComponent(size - index))
-    }
-
-    return ListOperation(result)
-}
-
-fun <T> Expr<List<T>>.buildSetOperation(index: Int, newValue: T): ListOperation<T> {
-    val listExpr = asListExpr()
-
-    val size = listExpr.list.size
-
-    if (index < 0 || index >= size) {
-        throw IndexOutOfBoundsException("index: $index size: $size")
-    }
-
-    val result = mutableListOf<ListComponent<T>>()
-    if (index > 0) {
-        result.add(ListRetainComponent(index))
-    }
-    result.add(ListSetComponent(listExpr.list[index], newValue))
-    if (index < size - 1) {
-        result.add(ListRetainComponent(size - 1 - index))
-    }
-
-    return ListOperation(result)
-}
-
-fun <T> Expr<List<T>>.buildRemoveOperation(index: Int): ListOperation<T> {
-    val listExpr = asListExpr()
-
-    val size = listExpr.list.size
-
-    if (index < 0 || index >= size) {
-        throw IndexOutOfBoundsException("index: $index size: $size")
-    }
-
-    val result = mutableListOf<ListComponent<T>>()
-    if (index > 0) {
-        result.add(ListRetainComponent(index))
-    }
-    result.add(ListRemoveComponent(listExpr.list[index]))
-    if (index < size - 1) {
-        result.add(ListRetainComponent(size - 1 - index))
-    }
-
-    return ListOperation(result)
-}
-
-// TODO Effekte nach außen erst ganz zum Schluss ausführen oder erneutes update verzögern
-infix fun <T> MutableList<T>.bind(expr: Expr<List<T>>) {
-    val listExpr = expr.asListExpr()
-    listExpr.replaceMutableList(this)
-}
-
+/*
 class MinExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
 
     override fun eval(): Double {
@@ -152,7 +168,9 @@ class MinExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
     }
 
 }
+*/
 
+/*
 class MaxExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
 
     override fun eval(): Double {
@@ -168,3 +186,4 @@ class MaxExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
     }
 
 }
+*/

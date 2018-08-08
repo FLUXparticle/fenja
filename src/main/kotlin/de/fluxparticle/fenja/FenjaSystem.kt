@@ -1,20 +1,18 @@
 package de.fluxparticle.fenja
 
-import de.fluxparticle.fenja.dependency.NamedDependencyExtractor
+import de.fluxparticle.fenja.dependency.Dependency
 import de.fluxparticle.fenja.dependency.SourceDependency
 import de.fluxparticle.fenja.dependency.UpdateDependency
-import de.fluxparticle.fenja.expr.Expr
 import de.fluxparticle.fenja.expr.InputExpr
-import de.fluxparticle.fenja.expr.NamedExpr
-import de.fluxparticle.fenja.expr.OutputExpr
+import de.fluxparticle.fenja.expr.UpdateExpr
 import de.fluxparticle.fenja.logger.FenjaSystemLogger
 import de.fluxparticle.fenja.logger.SilentFenjaSystemLogger
-import de.fluxparticle.fenja.stream.EventStream
-import de.fluxparticle.fenja.stream.EventStreamRelay
-import de.fluxparticle.fenja.stream.EventStreamSource
+import de.fluxparticle.fenja.stream.InputEventStream
 import de.fluxparticle.fenja.stream.TransactionProvider
+import de.fluxparticle.fenja.stream.UpdateEventStream
 import java.util.*
 import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -34,38 +32,29 @@ class FenjaSystem(private val logger: FenjaSystemLogger = SilentFenjaSystemLogge
 
     private var finished: Boolean = false
 
-    private val updates: MutableMap<String, MutableList<String>> = HashMap()
-
-    fun <T> createEventStreamSource(name: String): EventStreamSource<T> {
-        checkNotFinished()
-        checkName(name)
-        val eventStreamSource = EventStreamSource<T>(name, transactionProvider, logger)
-        sourceDependencies[name] = eventStreamSource
-        return eventStreamSource
-    }
-
-    fun <T> createEventStreamRelay(name: String): EventStreamRelay<T> {
-        checkNotFinished()
-        checkName(name)
-        val variable = EventStreamRelay<T>(name, logger)
-        updateDependencies[name] = variable
-        return variable
-    }
+    private val updates: MutableMap<Dependency<*>, MutableList<UpdateDependency<*>>> = HashMap()
 
     fun <T> createInputExpr(name: String): InputExpr<T> {
         checkNotFinished()
         checkName(name)
-        val variable = InputExpr<T>(name, logger)
-        sourceDependencies[name] = variable
-        return variable
+        val inputExpr = InputExpr<T>(name, transactionProvider, logger)
+        sourceDependencies[name] = inputExpr.dependency
+        return inputExpr
     }
 
-    fun <T> createOutputExpr(name: String): OutputExpr<T> {
+    fun <T> createInputEventStream(name: String): InputEventStream<T> {
         checkNotFinished()
         checkName(name)
-        val variable = OutputExpr<T>(name, logger)
-        updateDependencies[name] = variable
-        return variable
+        val eventStreamSource = InputEventStream<T>(name, transactionProvider, logger)
+        sourceDependencies[name] = eventStreamSource.dependency
+        return eventStreamSource
+    }
+
+    private fun <T> createUpdateDependency(name: String, dependency: UpdateDependency<T>) {
+        checkNotFinished()
+        checkName(name)
+        dependency.name = name
+        updateDependencies[name] = dependency
     }
 
     fun finish() {
@@ -73,24 +62,41 @@ class FenjaSystem(private val logger: FenjaSystemLogger = SilentFenjaSystemLogge
 
         // TODO cycle detection
 
+        val visited = HashSet<UpdateDependency<*>>()
         updateDependencies.forEach { _, expr ->
-            (expr.getDependency() ?: throw RuntimeException("variable " + expr.name + " is not ready"))
-                    .accept(NamedDependencyExtractor())
-                    .forEach { factor -> updates.getOrPut(factor.name) { ArrayList() }.add(expr.name) }
+            val queue = LinkedList<UpdateDependency<*>>()
+            queue.add(expr)
+            while (queue.isNotEmpty()) {
+                val element = queue.remove()
+                if (!visited.contains(element)) {
+                    visited.add(element)
+                    val dependencies = element.getDependencies()
+                    dependencies.forEach { dep ->
+                        updates.getOrPut(dep) { ArrayList() }.add(element)
+                        if (dep is UpdateDependency<*>) {
+                            queue.add(dep)
+                        }
+                    }
+                }
+            }
         }
 
         logger.ruleLists("updates", updates);
 
         sourceDependencies.forEach { _, source ->
-            if (source is NamedExpr<*>) {
-                source.value ?: throw RuntimeException("variable " + source.name + " does not have a value")
+            if (source is InputExpr<*> && source.getTransaction() < 0) {
+                throw RuntimeException("variable " + source.name + " does not have a value")
             }
             source.updates = TopologicalSorting().sort(source).result
         }
 
         sourceDependencies
                 .values.fold(TopologicalSorting(), TopologicalSorting::sort)
-                .result.forEach { it.update() }
+                .result.forEach {
+            it.update()
+            logger.executeUpdate(it)
+            it.updateLoop()
+        }
 
         finished = true
     }
@@ -112,18 +118,18 @@ class FenjaSystem(private val logger: FenjaSystemLogger = SilentFenjaSystemLogge
 
         val result = LinkedList<UpdateDependency<*>>()
 
-        private val visited = HashSet<String>()
+        private val visited = HashSet<UpdateDependency<*>>()
 
         internal fun sort(source: SourceDependency<*>): TopologicalSorting {
-            updates[source.name]?.forEach { visit(it) }
+            updates[source]?.forEach { visit(it) }
             return this
         }
 
-        private fun visit(name: String) {
-            if (!visited.contains(name)) {
-                updates[name]?.forEach { visit(it) }
-                visited.add(name)
-                result.addFirst(updateDependencies[name])
+        private fun visit(updateDependency: UpdateDependency<*>) {
+            if (!visited.contains(updateDependency)) {
+                updates[updateDependency]?.forEach { visit(it) }
+                visited.add(updateDependency)
+                result.addFirst(updateDependency)
             }
         }
 
@@ -141,55 +147,52 @@ class FenjaSystem(private val logger: FenjaSystemLogger = SilentFenjaSystemLogge
 
     }
 
-    inner class OutputExprDelegate<T> : ReadWriteProperty<Any, Expr<T>> {
+    inner class InputEventStreamDelegate<T> : ReadOnlyProperty<Any, InputEventStream<T>> {
 
-        private var outputExpr: OutputExpr<T>? = null
+        private var sourceEventStream: InputEventStream<T>? = null
 
-        override fun getValue(thisRef: Any, property: KProperty<*>): Expr<T> {
-            return getOutputExpr(property.name)
+        override fun getValue(thisRef: Any, property: KProperty<*>): InputEventStream<T> {
+            return sourceEventStream ?: createInputEventStream<T>(property.name).also {
+                sourceEventStream = it
+            }
         }
 
-        override fun setValue(thisRef: Any, property: KProperty<*>, value: Expr<T>) {
+    }
+
+    inner class UpdateExprDelegate<E : UpdateExpr<T>, T> : ReadWriteProperty<Any, E> {
+
+        private lateinit var updateDependency: E
+
+        override fun getValue(thisRef: Any, property: KProperty<*>): E {
+            return updateDependency
+        }
+
+        override fun setValue(thisRef: Any, property: KProperty<*>, value: E) {
             checkNotFinished()
-            getOutputExpr(property.name).setRule(value)
-        }
-
-        private fun getOutputExpr(name: String): OutputExpr<T> {
-            return outputExpr ?: createOutputExpr<T>(name).also {
-                outputExpr = it
+            if (this::updateDependency.isInitialized) {
+                throw IllegalStateException("already assigned")
             }
+            createUpdateDependency(property.name, value.dependency)
+            updateDependency = value
         }
 
     }
 
-    inner class EventStreamSourceDelegate<T> : ReadOnlyProperty<Any, EventStreamSource<T>> {
+    inner class UpdateEventStreamDelegate<E : UpdateEventStream<T>, T> : ReadWriteProperty<Any, E> {
 
-        private var eventStreamSource: EventStreamSource<T>? = null
+        private lateinit var updateDependency: E
 
-        override fun getValue(thisRef: Any, property: KProperty<*>): EventStreamSource<T> {
-            return eventStreamSource ?: createEventStreamSource<T>(property.name).also {
-                eventStreamSource = it
+        override fun getValue(thisRef: Any, property: KProperty<*>): E {
+            return updateDependency
+        }
+
+        override fun setValue(thisRef: Any, property: KProperty<*>, value: E) {
+            checkNotFinished()
+            if (this::updateDependency.isInitialized) {
+                throw IllegalStateException("already assigned")
             }
-        }
-
-    }
-
-    inner class EventStreamRelayDelegate<T> : ReadWriteProperty<Any, EventStream<T>> {
-
-        private var eventStreamRelay: EventStreamRelay<T>? = null
-
-        override fun getValue(thisRef: Any, property: KProperty<*>): EventStream<T> {
-            return getEventStreamRelay(property.name)
-        }
-
-        override fun setValue(thisRef: Any, property: KProperty<*>, value: EventStream<T>) {
-            getEventStreamRelay(property.name).setSource(value)
-        }
-
-        private fun getEventStreamRelay(name: String): EventStreamRelay<T> {
-            return eventStreamRelay ?: createEventStreamRelay<T>(name).also {
-                eventStreamRelay = it
-            }
+            createUpdateDependency(property.name, value.dependency)
+            updateDependency = value
         }
 
     }

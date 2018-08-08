@@ -19,9 +19,9 @@ class EventStreamTest {
 
     private val system = FenjaSystem(logger)
 
-    private val input by system.EventStreamSourceDelegate<Int>()
+    private val input by system.InputEventStreamDelegate<Int>()
 
-    private var output by system.EventStreamRelayDelegate<String>()
+    private var output: UpdateEventStream<String> by system.UpdateEventStreamDelegate()
 
     @Test
     fun simple1() {
@@ -35,8 +35,8 @@ class EventStreamTest {
 
         input.sendValue(42)
 
-        verify(mockLogger).updateSource(any(), any())
-        verify(mockLogger).executeUpdate(any(), any())
+        verify(mockLogger).updateSource(any())
+        verify(mockLogger).executeUpdate(any())
     }
 
 }

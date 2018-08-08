@@ -15,8 +15,8 @@ class OperationList<T>(source: MutableList<T>, private val func: (ListOperation<
             list.add(ListRetainComponent(index))
         }
         list.add(ListAddComponent(element))
-        if (index < size()) {
-            list.add(ListRetainComponent(size() - index))
+        if (index < size) {
+            list.add(ListRetainComponent(size - index))
         }
 
         func.invoke(ListOperation(list))
@@ -29,8 +29,8 @@ class OperationList<T>(source: MutableList<T>, private val func: (ListOperation<
             list.add(ListRetainComponent(index))
         }
         list.add(ListSetComponent(get(index), element))
-        if (index < size() - 1) {
-            list.add(ListRetainComponent(size() - 1 - index))
+        if (index < size - 1) {
+            list.add(ListRetainComponent(size - 1 - index))
         }
 
         func.invoke(ListOperation(list))
@@ -43,8 +43,8 @@ class OperationList<T>(source: MutableList<T>, private val func: (ListOperation<
             list.add(ListRetainComponent(index))
         }
         list.add(ListRemoveComponent(get(index)))
-        if (index < size() - 1) {
-            list.add(ListRetainComponent(size() - 1 - index))
+        if (index < size - 1) {
+            list.add(ListRetainComponent(size - 1 - index))
         }
 
         func.invoke(ListOperation(list))

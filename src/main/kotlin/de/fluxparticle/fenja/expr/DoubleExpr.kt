@@ -1,11 +1,12 @@
 package de.fluxparticle.fenja.expr
 
-import de.fluxparticle.fenja.dependency.DependencyVisitor
+import de.fluxparticle.fenja.dependency.Dependency
+import de.fluxparticle.fenja.dependency.UpdateDependency
+import kotlin.math.max
 
 /**
  * Created by sreinck on 31.07.18.
  */
-
 operator fun Expr<Double>.unaryMinus() = NegateExpr(this)
 
 operator fun Expr<Double>.plus(other: Expr<Double>) = PlusExpr(this, other)
@@ -24,105 +25,164 @@ operator fun Expr<Double>.div(other: Expr<Double>) = DivExpr(this, other)
 
 operator fun Expr<Double>.div(other: Double) = div(ConstExpr(other))
 
+class NegateExpr(
+        argument: Expr<Double>
+) : UpdateExpr<Double>(NegDependency(argument.dependency)) {
 
-class NegateExpr(private val argument: Expr<Double>) : Expr<Double>() {
+    private class NegDependency(
+            private val argument: Dependency<Double>
+    ) : UpdateDependency<Double>() {
 
-    override fun eval(): Double {
-        val argumentResult = argument.eval()
-        return -argumentResult
-    }
+        override fun update() {
+            val transaction = argument.getTransaction()
+            if (transaction > buffer.getTransaction()) {
+                val value = argument.getValue()
+                val negValue = -value
+                buffer.setValue(transaction, negValue)
+            }
+        }
 
-    override fun toString(): String {
-        val argumentResult = argument.asFactor()
-        return "-$argumentResult"
-    }
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(argument)
+        }
 
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, argument)
-    }
-
-}
-
-class PlusExpr(private val left: Expr<Double>, private val right: Expr<Double>) : Expr<Double>() {
-
-    override fun asFactor(): String = "(${toString()})"
-
-    override fun eval(): Double {
-        val leftResult = left.eval()
-        val rightResult = right.eval()
-        return leftResult + rightResult
-    }
-
-    override fun toString(): String {
-        val leftResult = left.toString()
-        val rightResult = right.toString()
-        return "$leftResult + $rightResult"
-    }
-
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, left, right)
+        override fun toUpdateString(): String {
+            return "-$argument"
+        }
     }
 
 }
 
-class MinusExpr(private val left: Expr<Double>, private val right: Expr<Double>) : Expr<Double>() {
+class PlusExpr(
+        left: Expr<Double>,
+        right: Expr<Double>
+) : UpdateExpr<Double>(PlusDependency(left.dependency, right.dependency)) {
 
-    override fun asFactor(): String = "(${toString()})"
+    private class PlusDependency(
+            private val left: Dependency<Double>,
+            private val right: Dependency<Double>
+    ) : UpdateDependency<Double>() {
 
-    override fun eval(): Double {
-        val leftResult = left.eval()
-        val rightResult = right.eval()
-        return leftResult - rightResult
-    }
+        override fun update() {
+            val transactionA = left.getTransaction()
+            val transactionB = right.getTransaction()
+            val transaction = max(transactionA, transactionB)
+            if (transaction > buffer.getTransaction()) {
+                val valueA = left.getValue()
+                val valueB = right.getValue()
+                val result = valueA + valueB
+                buffer.setValue(transaction, result)
+            }
+        }
 
-    override fun toString(): String {
-        val leftResult = left.toString()
-        val rightResult = right.asFactor()
-        return "$leftResult - $rightResult"
-    }
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(left, right)
+        }
 
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, left, right)
-    }
-
-}
-
-class TimesExpr(private val left: Expr<Double>, private val right: Expr<Double>) : Expr<Double>() {
-
-    override fun eval(): Double {
-        val leftResult = left.eval()
-        val rightResult = right.eval()
-        return leftResult * rightResult
-    }
-
-    override fun toString(): String {
-        val leftResult = left.asFactor()
-        val rightResult = right.asFactor()
-        return "$leftResult * $rightResult"
-    }
-
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, left, right)
+        override fun toUpdateString(): String {
+            return "$left + $right"
+        }
     }
 
 }
 
-class DivExpr(private val left: Expr<Double>, private val right: Expr<Double>) : Expr<Double>() {
+class MinusExpr(
+        left: Expr<Double>,
+        right: Expr<Double>
+) : UpdateExpr<Double>(MinusDependency(left.dependency, right.dependency)) {
 
-    override fun eval(): Double {
-        val leftResult = left.eval()
-        val rightResult = right.eval()
-        return leftResult / rightResult
+    private class MinusDependency(
+            private val left: Dependency<Double>,
+            private val right: Dependency<Double>
+    ) : UpdateDependency<Double>() {
+
+        override fun update() {
+            val transactionA = left.getTransaction()
+            val transactionB = right.getTransaction()
+            val transaction = max(transactionA, transactionB)
+            if (transaction > buffer.getTransaction()) {
+                val valueA = left.getValue()
+                val valueB = right.getValue()
+                val result = valueA - valueB
+                buffer.setValue(transaction, result)
+            }
+        }
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(left, right)
+        }
+
+        override fun toUpdateString(): String {
+            return "$left - $right"
+        }
     }
 
-    override fun toString(): String {
-        val leftResult = left.asFactor()
-        val rightResult = right.asFactor()
-        return "$leftResult / $rightResult"
+}
+
+class TimesExpr(
+        left: Expr<Double>,
+        right: Expr<Double>
+) : UpdateExpr<Double>(TimesDependency(left.dependency, right.dependency)) {
+
+    private class TimesDependency(
+            private val left: Dependency<Double>,
+            private val right: Dependency<Double>
+    ) : UpdateDependency<Double>() {
+
+        override fun update() {
+            val transactionA = left.getTransaction()
+            val transactionB = right.getTransaction()
+            val transaction = max(transactionA, transactionB)
+            if (transaction > buffer.getTransaction()) {
+                val valueA = left.getValue()
+                val valueB = right.getValue()
+                val result = valueA * valueB
+                buffer.setValue(transaction, result)
+            }
+        }
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(left, right)
+        }
+
+        override fun toUpdateString(): String {
+            return "$left * $right"
+        }
+
     }
 
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, left, right)
+}
+
+class DivExpr(
+        left: Expr<Double>,
+        right: Expr<Double>
+) : UpdateExpr<Double>(DivDependency(left.dependency, right.dependency)) {
+
+    private class DivDependency(
+            private val left: Dependency<Double>,
+            private val right: Dependency<Double>
+    ) : UpdateDependency<Double>() {
+
+        override fun update() {
+            val transactionA = left.getTransaction()
+            val transactionB = right.getTransaction()
+            val transaction = max(transactionA, transactionB)
+            if (transaction > buffer.getTransaction()) {
+                val valueA = left.getValue()
+                val valueB = right.getValue()
+                val result = valueA / valueB
+                buffer.setValue(transaction, result)
+            }
+        }
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(left, right)
+        }
+
+        override fun toUpdateString(): String {
+            return "$left / $right"
+        }
+
     }
 
 }

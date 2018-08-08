@@ -3,7 +3,7 @@ package de.fluxparticle.fenja.value
 /**
  * Created by sreinck on 28.07.18.
  */
-class LoopValue<T : Any> : ReadWriteValue<T>() {
+class LoopValue<T> : ReadWriteValue<T>() {
 
     private var loop: ReadWriteValue<T> = SimpleValue()
 

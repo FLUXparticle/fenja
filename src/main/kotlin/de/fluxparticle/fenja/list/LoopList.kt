@@ -23,7 +23,8 @@ class LoopList<T> : ReadWriteList<T>() {
 
     override fun removeAt(index: Int) = loop.removeAt(index)
 
-    override fun size(): Int = loop.size()
+    override val size: Int
+        get() = loop.size
 
     override fun get(index: Int): T = loop.get(index)
 

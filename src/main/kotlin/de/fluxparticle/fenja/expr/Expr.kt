@@ -1,81 +1,74 @@
 package de.fluxparticle.fenja.expr
 
 import de.fluxparticle.fenja.dependency.Dependency
-import de.fluxparticle.fenja.dependency.DependencyVisitor
+import de.fluxparticle.fenja.dependency.MapDependency
+import de.fluxparticle.fenja.dependency.SourceDependency
+import de.fluxparticle.fenja.dependency.UpdateDependency
+import de.fluxparticle.fenja.value.PropertyValue
+import javafx.beans.property.Property
+import kotlin.math.max
 
 /**
  * Created by sreinck on 03.06.18.
  */
-abstract class Expr<T> : Dependency<T> {
+abstract class Expr<T> internal constructor(internal open val dependency: Dependency<T>) {
 
-    infix fun <R> map(func: (T) -> R) : Expr<R> = MapExpr(this, func)
+    fun sample(): T = dependency.getValue()
+
+    infix fun <R> map(func: (T) -> R) : UpdateExpr<R> = MapExpr(this, func)
 
     infix fun <S> combine(other: Expr<S>) = CombineExprBuilder2(this, other)
 
-
-    open fun asFactor(): String = toString()
-
 }
 
-class ConstExpr<T>(private val value: T) : Expr<T>() {
-
-    override fun eval(): T {
-        return value
-    }
+abstract class UpdateExpr<T> internal constructor(override val dependency: UpdateDependency<T>) : Expr<T>(dependency) {
 
     override fun toString(): String {
-        return value.toString()
-    }
-
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this)
+        return dependency.toUpdateString()
     }
 
 }
 
-class MapExpr<T, R>(private val argument: Expr<T>, private val func: (T) -> R) : Expr<R>() {
+infix fun <T> Property<T>.bind(expr: UpdateExpr<T>) {
+    expr.dependency.loop(PropertyValue(this))
+}
 
-    override fun eval(): R {
-        val argumentResult = argument.eval()
-        return func.invoke(argumentResult)
-    }
-
-    override fun asFactor(): String = "(${toString()})"
+abstract class SourceExpr<T> internal constructor(override val dependency: SourceDependency<T>) : Expr<T>(dependency) {
 
     override fun toString(): String {
-        val argumentResult = argument.asFactor()
-        return "$argumentResult {}"
-    }
-
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, argument)
+        return dependency.toString()
     }
 
 }
 
-class CombineExpr2<A, B, R>(
-        private val paramA: Expr<A>,
-        private val paramB: Expr<B>,
-        private val func: (A, B) -> R
-) : Expr<R>() {
+class ConstExpr<T>(initValue: T) : UpdateExpr<T>(ConstDependency(initValue)) {
 
-    override fun eval(): R {
-        val resultA = paramA.eval()
-        val resultB = paramB.eval()
-        return func.invoke(resultA, resultB)
+    private class ConstDependency<T>(initValue: T) : UpdateDependency<T>() {
+
+        init {
+            buffer.setValue(0L, initValue)
+        }
+
+        override fun update() {
+            // empty
+        }
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return emptySequence()
+        }
+
+        override fun toUpdateString(): String {
+            return buffer.getValue().toString()
+        }
+
     }
 
-    override fun asFactor(): String = "(${toString()})"
+}
 
-    override fun toString(): String {
-        val resultA = paramA.asFactor()
-        val resultB = paramB.asFactor()
-        return "($resultA combine $resultB) {}"
-    }
-
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, paramA, paramB)
-    }
+class MapExpr<T, R>(
+        argument: Expr<T>,
+        func: (T) -> R
+) : UpdateExpr<R>(MapDependency(argument.dependency, func)) {
 
 }
 
@@ -84,37 +77,44 @@ class CombineExprBuilder2<A, B>(
         private val paramB: Expr<B>
 ) {
 
-    operator fun <R> invoke(func: (A, B) -> R) : Expr<R> = CombineExpr2(paramA, paramB, func)
+    operator fun <R> invoke(func: (A, B) -> R) : UpdateExpr<R> = CombineExpr2(paramA, paramB, func)
 
     infix fun <C> combine(next: Expr<C>) = CombineExprBuilder3(paramA, paramB, next)
 
 }
 
-class CombineExpr3<A, B, C, R>(
-        private val paramA: Expr<A>,
-        private val paramB: Expr<B>,
-        private val paramC: Expr<C>,
-        private val func: (A, B, C) -> R
-) : Expr<R>() {
+class CombineExpr2<A, B, R>(
+        paramA: Expr<A>,
+        paramB: Expr<B>,
+        func: (A, B) -> R
+) : UpdateExpr<R>(CombineDependency2(paramA.dependency, paramB.dependency, func)) {
 
-    override fun eval(): R {
-        val resultA = paramA.eval()
-        val resultB = paramB.eval()
-        val resultC = paramC.eval()
-        return func.invoke(resultA, resultB, resultC)
-    }
+    private class CombineDependency2<A, B, R>(
+            private val paramA: Dependency<A>,
+            private val paramB: Dependency<B>,
+            private val func: (A, B) -> R
+    ) : UpdateDependency<R>() {
 
-    override fun asFactor(): String = "(${toString()})"
+        override fun update() {
+            val transactionA = paramA.getTransaction()
+            val transactionB = paramB.getTransaction()
+            val transaction = max(transactionA, transactionB)
+            if (transaction > buffer.getTransaction()) {
+                val valueA = paramA.getValue()
+                val valueB = paramB.getValue()
+                val combined = func.invoke(valueA, valueB)
+                buffer.setValue(transaction, combined)
+            }
+        }
 
-    override fun toString(): String {
-        val resultA = paramA.asFactor()
-        val resultB = paramB.asFactor()
-        val resultC = paramC.asFactor()
-        return "($resultA combine $resultB combine $resultC) {}"
-    }
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(paramA, paramB)
+        }
 
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, paramA, paramB, paramC)
+        override fun toUpdateString(): String {
+            return "($paramA combine $paramB) {}"
+        }
+
     }
 
 }
@@ -125,6 +125,46 @@ class CombineExprBuilder3<A, B, C>(
         private val paramC: Expr<C>
 ) {
 
-    operator fun <R> invoke(func: (A, B, C) -> R) : Expr<R> = CombineExpr3(paramA, paramB, paramC, func)
+    operator fun <R> invoke(func: (A, B, C) -> R) : UpdateExpr<R> = CombineExpr3(paramA, paramB, paramC, func)
+
+}
+
+class CombineExpr3<A, B, C, R>(
+        paramA: Expr<A>,
+        paramB: Expr<B>,
+        paramC: Expr<C>,
+        func: (A, B, C) -> R
+) : UpdateExpr<R>(CombineDependency3(paramA.dependency, paramB.dependency, paramC.dependency, func)) {
+
+    private class CombineDependency3<A, B, C, R>(
+            private val paramA: Dependency<A>,
+            private val paramB: Dependency<B>,
+            private val paramC: Dependency<C>,
+            private val func: (A, B, C) -> R
+    ) : UpdateDependency<R>() {
+
+        override fun update() {
+            val transactionA = paramA.getTransaction()
+            val transactionB = paramB.getTransaction()
+            val transactionC = paramC.getTransaction()
+            val transaction = max(max(transactionA, transactionB), transactionC)
+            if (transaction > buffer.getTransaction()) {
+                val valueA = paramA.getValue()
+                val valueB = paramB.getValue()
+                val valueC = paramC.getValue()
+                val combined = func.invoke(valueA, valueB, valueC)
+                buffer.setValue(transaction, combined)
+            }
+        }
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(paramA, paramB, paramC)
+        }
+
+        override fun toUpdateString(): String {
+            return "($paramA combine $paramB combine $paramC) {}"
+        }
+
+    }
 
 }

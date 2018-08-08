@@ -1,12 +1,10 @@
 package de.fluxparticle.fenja
 
-import de.fluxparticle.fenja.expr.ConstExpr
-import de.fluxparticle.fenja.expr.Expr
 import de.fluxparticle.fenja.expr.InputExpr
+import de.fluxparticle.fenja.expr.UpdateExpr
 import de.fluxparticle.fenja.expr.times
 import de.fluxparticle.fenja.logger.PrintFenjaSystemLogger
 import org.junit.Assert
-import org.junit.Ignore
 import org.junit.Test
 import java.lang.RuntimeException
 
@@ -21,27 +19,28 @@ class FenjaSystemTest {
 
     private val b: InputExpr<Double> by system.InputExprDelegate()
 
-    private var c: Expr<Double> by system.OutputExprDelegate()
+    private var c: UpdateExpr<Double> by system.UpdateExprDelegate()
 
     @Test
     fun answer() {
-        a.value = 6.0
-        b.value = 7.0
+        a.setValue(6.0)
+        b.setValue(7.0)
         c = a * b
 
         system.finish()
 
-        c.eval() shouldEqual 42.0
+        c.sample() shouldEqual 42.0
 
-        a.value = 7.0
+        a.setValue(7.0)
 
-        c.eval() shouldEqual 49.0
+        c.sample() shouldEqual 49.0
 
-        b.value = 6.0
+        b.setValue(6.0)
 
-        c.eval() shouldEqual 42.0
+        c.sample() shouldEqual 42.0
     }
 
+/*
     @Test
     @Ignore
     fun const() {
@@ -49,8 +48,9 @@ class FenjaSystemTest {
 
         system.finish()
 
-        c.eval() shouldEqual 42.0
+        c.sample() shouldEqual 42.0
     }
+*/
 
     @Test(expected = RuntimeException::class)
     fun noRule() {

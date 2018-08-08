@@ -5,14 +5,14 @@ package de.fluxparticle.fenja.list
  */
 interface ReadList<T> : Iterable<T> {
 
-    fun get(index: Int): T
+    val size: Int
 
-    fun size(): Int
+    fun get(index: Int): T
 
     fun <R : Comparable<R>> binarySearchBy(element: T, by: (T) -> R): Int {
         val comparable = by(element)
         var lo = 0
-        var hi = size()
+        var hi = size
         while (lo < hi) {
             val mid = (lo + hi) / 2
             val cmp = comparable.compareTo(by(get(mid)))
@@ -25,7 +25,7 @@ interface ReadList<T> : Iterable<T> {
                 }
             }
         }
-        return if (lo < size() && element == get(lo)) {
+        return if (lo < size && element == get(lo)) {
             lo
         } else {
             -1 - lo

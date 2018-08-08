@@ -1,11 +1,11 @@
-package de.fluxparticle.fenja.stream
+package de.fluxparticle.fenja.dependency
 
 /**
  * Created by sreinck on 04.08.18.
  */
 class Buffer<T> {
 
-    private var transaction: Long = 0
+    private var transaction: Long = -1L
 
     private var value: T? = null
 

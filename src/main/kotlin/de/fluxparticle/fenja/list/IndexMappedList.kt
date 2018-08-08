@@ -20,7 +20,7 @@ class IndexMappedList<T, R>(private val destination: ReadWriteList<R>, private v
     }
 
     private fun update(from: Int) {
-        for (idx in from until destination.size()) {
+        for (idx in from until destination.size) {
             destination.set(idx, func(idx, get(idx)))
         }
     }
