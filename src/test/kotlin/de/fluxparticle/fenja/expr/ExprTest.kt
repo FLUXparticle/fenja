@@ -75,7 +75,7 @@ class ExprTest {
     @Test
     fun list() {
         val list = ListExpr<String>()
-        listOf("a", "b", "c").forEach { list.elements.add(it) }
+        listOf("a", "b", "c").forEach { list.elements.changeFilter(it) }
         val max = list.max()
         exprPrinter.printExpr(max) shouldBeEqualTo "max [a, b, c]"
     }

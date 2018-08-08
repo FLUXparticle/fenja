@@ -17,14 +17,13 @@ abstract class ListExpr<T> internal constructor() : UpdateExpr<List<T>>() {
 
     abstract override val dependency: ListDependency<T>
 
-    protected abstract val source: EventStream<ListOperation<T>>
+    internal abstract val source: EventStream<ListOperation<T>>
 
     protected val list: ReadList<T>
         get() = dependency.list
 
     infix fun filter(predicateExpr: Expr<(T) -> Boolean>): FilterListExpr<T> {
-        val eventStream = FilterListOperationEventStream(source, predicateExpr)
-        return FilterListExpr(eventStream, predicateExpr)
+        return FilterListExpr(source, predicateExpr)
     }
 
     fun buildAddOperation(value: T): ListOperation<T> {
@@ -108,7 +107,7 @@ internal abstract class ListDependency<T>(
     }
 
     init {
-        buffer.setValue(0L, LoopList())
+        buffer.setValue(-1L, LoopList())
     }
 
     override fun update() {
