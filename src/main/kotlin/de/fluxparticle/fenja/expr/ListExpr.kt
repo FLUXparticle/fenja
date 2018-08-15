@@ -159,39 +159,3 @@ infix fun <T> EventStream<ListOperation<T>>.hold(initList: List<T>): ListExpr<T>
 infix fun <T> MutableList<T>.bind(listExpr: ListExpr<T>) {
     listExpr.dependency.loopList(DelegatedList(this))
 }
-
-/*
-class MinExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
-
-    override fun eval(): Double {
-        return arguments.map { it.eval() }.min() ?: 0.0
-    }
-
-    override fun toString(): String {
-        return "min ${arguments.toList()}"
-    }
-
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, *arguments.toList().toTypedArray())
-    }
-
-}
-*/
-
-/*
-class MaxExpr(private val arguments: Iterable<Expr<Double>>) : Expr<Double>() {
-
-    override fun eval(): Double {
-        return arguments.map { it.eval() }.max() ?: 0.0
-    }
-
-    override fun toString(): String {
-        return "max ${arguments.toList()}"
-    }
-
-    override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this, *arguments.toList().toTypedArray())
-    }
-
-}
-*/

@@ -5,6 +5,7 @@ import de.fluxparticle.fenja.dependency.MapDependency
 import de.fluxparticle.fenja.dependency.SourceDependency
 import de.fluxparticle.fenja.dependency.UpdateDependency
 import de.fluxparticle.fenja.value.PropertyValue
+import de.fluxparticle.fenja.value.ReadWriteValue
 import javafx.beans.property.Property
 import kotlin.math.max
 
@@ -17,6 +18,8 @@ abstract class Expr<T> internal constructor() {
 
     fun sample(): T = dependency.getValue()
 
+    abstract fun identity(): UpdateExpr<T>
+
     infix fun <R> map(func: (T) -> R) : UpdateExpr<R> = MapExpr(this, func)
 
     infix fun <S> combine(other: Expr<S>) = CombineExprBuilder2(this, other)
@@ -27,6 +30,8 @@ abstract class UpdateExpr<T> internal constructor() : Expr<T>() {
 
     abstract override val dependency: UpdateDependency<T>
 
+    final override fun identity() = this
+
     override fun toString(): String {
         return dependency.toUpdateString()
     }
@@ -34,12 +39,18 @@ abstract class UpdateExpr<T> internal constructor() : Expr<T>() {
 }
 
 infix fun <T> Property<T>.bind(expr: UpdateExpr<T>) {
-    expr.dependency.loop(PropertyValue(this))
+    PropertyValue(this) bind expr
+}
+
+infix fun <T> ReadWriteValue<T>.bind(expr: UpdateExpr<T>) {
+    expr.dependency.loop(this)
 }
 
 abstract class SourceExpr<T> internal constructor() : Expr<T>() {
 
     abstract override val dependency: SourceDependency<T>
+
+    final override fun identity(): UpdateExpr<T> = IdentityExpr(this)
 
     override fun toString(): String {
         return dependency.toString()
@@ -47,7 +58,7 @@ abstract class SourceExpr<T> internal constructor() : Expr<T>() {
 
 }
 
-class ConstExpr<T>(initValue: T) : UpdateExpr<T>() {
+internal class ConstExpr<T>(initValue: T) : UpdateExpr<T>() {
 
     override val dependency: UpdateDependency<T> = ConstDependency(initValue)
 
@@ -73,7 +84,34 @@ class ConstExpr<T>(initValue: T) : UpdateExpr<T>() {
 
 }
 
-class MapExpr<T, R>(
+internal class IdentityExpr<T>(argument: Expr<T>) : UpdateExpr<T>() {
+
+    override val dependency: UpdateDependency<T> = IdentityDependency(argument.dependency)
+
+    private class IdentityDependency<T>(
+            private val argument: Dependency<T>
+    ) : UpdateDependency<T>() {
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(argument)
+        }
+
+        override fun update() {
+            val transaction = argument.getTransaction()
+            if (transaction > buffer.getTransaction()) {
+                val value = argument.getValue()
+                buffer.setValue(transaction, value)
+            }
+        }
+
+        override fun toUpdateString(): String {
+            return argument.toString()
+        }
+
+    }
+
+}
+
+internal class MapExpr<T, R>(
         argument: Expr<T>,
         func: (T) -> R
 ) : UpdateExpr<R>() {
@@ -82,7 +120,7 @@ class MapExpr<T, R>(
 
 }
 
-class CombineExprBuilder2<A, B>(
+class CombineExprBuilder2<A, B> internal constructor(
         private val paramA: Expr<A>,
         private val paramB: Expr<B>
 ) {
@@ -93,7 +131,7 @@ class CombineExprBuilder2<A, B>(
 
 }
 
-class CombineExpr2<A, B, R>(
+internal class CombineExpr2<A, B, R>(
         paramA: Expr<A>,
         paramB: Expr<B>,
         func: (A, B) -> R
@@ -131,7 +169,7 @@ class CombineExpr2<A, B, R>(
 
 }
 
-class CombineExprBuilder3<A, B, C>(
+class CombineExprBuilder3<A, B, C> internal constructor(
         private val paramA: Expr<A>,
         private val paramB: Expr<B>,
         private val paramC: Expr<C>
@@ -141,7 +179,7 @@ class CombineExprBuilder3<A, B, C>(
 
 }
 
-class CombineExpr3<A, B, C, R>(
+internal class CombineExpr3<A, B, C, R>(
         paramA: Expr<A>,
         paramB: Expr<B>,
         paramC: Expr<C>,
@@ -177,6 +215,45 @@ class CombineExpr3<A, B, C, R>(
 
         override fun toUpdateString(): String {
             return "($paramA combine $paramB combine $paramC) {}"
+        }
+
+    }
+
+}
+
+class LazyExpr<T> internal constructor(private val name: String) : UpdateExpr<T>() {
+
+    override val dependency: UpdateDependency<T> = LazyDependency()
+
+    private lateinit var argument: Expr<T>
+
+    fun setExpr(argument: Expr<T>) {
+        this.argument = argument
+    }
+
+    override fun toString(): String {
+        return name
+    }
+
+    private inner class LazyDependency: UpdateDependency<T>() {
+
+        private val argument: Dependency<T>
+            get() = this@LazyExpr.argument.dependency
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return sequenceOf(argument)
+        }
+
+        override fun update() {
+            val transaction = argument.getTransaction()
+            if (transaction > buffer.getTransaction()) {
+                val value = argument.getValue()
+                buffer.setValue(transaction, value)
+            }
+        }
+
+        override fun toUpdateString(): String {
+            return this@LazyExpr.toString()
         }
 
     }

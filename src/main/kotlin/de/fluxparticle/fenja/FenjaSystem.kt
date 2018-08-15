@@ -4,6 +4,7 @@ import de.fluxparticle.fenja.dependency.Dependency
 import de.fluxparticle.fenja.dependency.SourceDependency
 import de.fluxparticle.fenja.dependency.UpdateDependency
 import de.fluxparticle.fenja.expr.InputExpr
+import de.fluxparticle.fenja.expr.LazyExpr
 import de.fluxparticle.fenja.expr.UpdateExpr
 import de.fluxparticle.fenja.logger.FenjaSystemLogger
 import de.fluxparticle.fenja.logger.SilentFenjaSystemLogger
@@ -48,6 +49,12 @@ class FenjaSystem(private val logger: FenjaSystemLogger = SilentFenjaSystemLogge
         val eventStreamSource = InputEventStream<T>(name, transactionProvider, logger)
         sourceDependencies[name] = eventStreamSource.dependency
         return eventStreamSource
+    }
+
+    fun <T> createUpdateExpr(name: String): LazyExpr<T> {
+        val lazyExpr = LazyExpr<T>(name)
+        createUpdateDependency(name, lazyExpr.dependency)
+        return lazyExpr
     }
 
     private fun <T> createUpdateDependency(name: String, dependency: UpdateDependency<T>) {

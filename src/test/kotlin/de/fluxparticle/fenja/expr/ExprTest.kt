@@ -71,15 +71,12 @@ class ExprTest {
         r.toString() shouldBeEqualTo "(a combine b combine c) {}"
     }
 
-    /*
     @Test
-    fun list() {
-        val list = ListExpr<String>()
-        listOf("a", "b", "c").forEach { list.elements.changeFilter(it) }
-        val max = list.max()
-        exprPrinter.printExpr(max) shouldBeEqualTo "max [a, b, c]"
+    fun max() {
+        val list = listOf(a, b, c)
+        r = MaxExpr(list.asSequence())
+        r.toString() shouldBeEqualTo "max [a, b, c]"
     }
-*/
 
 }
 

@@ -196,3 +196,59 @@ class DivExpr(
     }
 
 }
+
+class MinExpr(arguments: Sequence<Expr<Double>>) : UpdateExpr<Double>() {
+
+    override val dependency: UpdateDependency<Double> = MinDependency(arguments.map { it.dependency })
+
+    private class MinDependency(
+            private val arguments: Sequence<Dependency<Double>>
+    ) : UpdateDependency<Double>() {
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return arguments
+        }
+
+        override fun update() {
+            val transaction = arguments.map { it.getTransaction() }.max()!!
+            if (transaction > buffer.getTransaction()) {
+                val value = arguments.map { it.getValue() }.min()!!
+                buffer.setValue(transaction, value)
+            }
+        }
+
+        override fun toUpdateString(): String {
+            return "min ${arguments.toList()}"
+        }
+
+    }
+
+}
+
+class MaxExpr(arguments: Sequence<Expr<Double>>) : UpdateExpr<Double>() {
+
+    override val dependency: UpdateDependency<Double> = MaxDependency(arguments.map { it.dependency })
+
+    private class MaxDependency(
+            private val arguments: Sequence<Dependency<Double>>
+    ) : UpdateDependency<Double>() {
+
+        override fun getDependencies(): Sequence<Dependency<*>> {
+            return arguments
+        }
+
+        override fun update() {
+            val transaction = arguments.map { it.getTransaction() }.max()!!
+            if (transaction > buffer.getTransaction()) {
+                val value = arguments.map { it.getValue() }.max()!!
+                buffer.setValue(transaction, value)
+            }
+        }
+
+        override fun toUpdateString(): String {
+            return "max ${arguments.toList()}"
+        }
+
+    }
+
+}

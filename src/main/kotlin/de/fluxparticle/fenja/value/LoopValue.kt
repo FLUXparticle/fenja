@@ -19,7 +19,9 @@ class LoopValue<T> : ReadWriteValue<T>() {
         if (closed) throw IllegalStateException("Loop already closed")
         closed = true
 
-        value.value = loop.value
+        if ((loop as SimpleValue).isSet) {
+            value.value = loop.value
+        }
         loop = value
     }
 
