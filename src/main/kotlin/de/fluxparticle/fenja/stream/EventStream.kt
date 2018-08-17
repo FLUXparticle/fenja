@@ -41,7 +41,7 @@ internal class EventStreamHoldDependency<T>(
     }
 
     override fun toUpdateString(): String {
-        return source.toString()
+        return "$source hold _"
     }
 
 }

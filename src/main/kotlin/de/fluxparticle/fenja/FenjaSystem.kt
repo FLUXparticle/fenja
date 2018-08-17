@@ -18,12 +18,23 @@ import de.fluxparticle.fenja.operation.algorithm.Filter
 import de.fluxparticle.fenja.operation.algorithm.Inverter
 import de.fluxparticle.fenja.operation.algorithm.Transformer
 import de.fluxparticle.fenja.stream.*
+import javafx.animation.KeyFrame
+import javafx.animation.Timeline
 import javafx.beans.property.Property
+import javafx.beans.property.ReadOnlyDoubleProperty
+import javafx.beans.property.ReadOnlyIntegerProperty
 import javafx.beans.value.ObservableValue
+import javafx.event.ActionEvent
+import javafx.event.Event
+import javafx.event.EventHandler
+import javafx.event.EventType
+import javafx.scene.Node
+import javafx.util.Duration
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.properties.ReadOnlyProperty
+import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 /**
@@ -171,12 +182,48 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
         return InputExprDelegate(inputExpr)
     }
 
-    @JvmName("provideNumberDelegate")
-    operator fun ObservableValue<Number>.provideDelegate(thisRef: Any?, property: KProperty<*>): InputExprDelegate<Double> {
+    operator fun ReadOnlyDoubleProperty.provideDelegate(thisRef: Any?, property: KProperty<*>): InputExprDelegate<Double> {
         val inputExpr = createInputExpr<Double>(property.name)
         inputExpr.setValue(value.toDouble())
         addListener { _, _, newValue -> inputExpr.setValue(newValue.toDouble()) }
         return InputExprDelegate(inputExpr)
+    }
+
+    operator fun ReadOnlyIntegerProperty.provideDelegate(thisRef: Any?, property: KProperty<*>): InputExprDelegate<Int> {
+        val inputExpr = createInputExpr<Int>(property.name)
+        inputExpr.setValue(value.toInt())
+        addListener { _, _, newValue -> inputExpr.setValue(newValue.toInt()) }
+        return InputExprDelegate(inputExpr)
+    }
+
+    inner class LazyExprDelegateProvider<E : UpdateExpr<T>, T> {
+
+        operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): LazyExprDelegate<E, T> {
+            return LazyExprDelegate(property.name)
+        }
+
+    }
+
+    inner class LazyExprDelegate<E : UpdateExpr<T>, T> internal constructor (private val name: String) : ReadWriteProperty<Any?, E> {
+
+        private lateinit var expr: E
+
+        override fun getValue(thisRef: Any?, property: KProperty<*>): E {
+            return expr
+        }
+
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: E) {
+            if (this::expr.isInitialized) {
+                throw IllegalStateException("already set")
+            }
+            createUpdateDependency(property.name, value.dependency)
+            expr = value
+        }
+
+    }
+
+    fun <E : UpdateExpr<T>, T> loop(): LazyExprDelegateProvider<E, T> {
+        return LazyExprDelegateProvider()
     }
 
     inner class InputEventStreamDelegate<T>(private val sourceEventStream: InputEventStream<T>) : ReadOnlyProperty<Any?, InputEventStream<T>> {
@@ -187,11 +234,21 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     }
 
-    inner class InputEventStreamDelegateProvider<T>(private val tProperty: Property<T>) {
+    inner class PropertyEventStreamDelegateProvider<T>(private val tProperty: Property<T>) {
 
         operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): InputEventStreamDelegate<T> {
             val inputEventStream = createInputEventStream<T>(property.name)
-            inputEventStream bind tProperty
+            tProperty.addListener { _, _, newValue -> inputEventStream.sendValue(newValue) }
+            return InputEventStreamDelegate(inputEventStream)
+        }
+
+    }
+
+    inner class NodeEventStreamDelegateProvider<E : Event>(private val node: Node, private val eventType: EventType<E>) {
+
+        operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): InputEventStreamDelegate<E> {
+            val inputEventStream = createInputEventStream<E>(property.name)
+            node.addEventHandler(eventType) { inputEventStream.sendValue(it) }
             return InputEventStreamDelegate(inputEventStream)
         }
 
@@ -282,8 +339,12 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     }
 
-    fun <T> changesOf(property: Property<T>): InputEventStreamDelegateProvider<T> {
-        return InputEventStreamDelegateProvider(property)
+    fun <T> changesOf(property: Property<T>): PropertyEventStreamDelegateProvider<T> {
+        return PropertyEventStreamDelegateProvider(property)
+    }
+
+    fun <E : Event> eventsOf(node: Node, eventType: EventType<E>): NodeEventStreamDelegateProvider<E> {
+        return NodeEventStreamDelegateProvider(node, eventType)
     }
 
     operator fun <E : UpdateExpr<T>, T> E.provideDelegate(thisRef: Any?, property: KProperty<*>): UpdateExprDelegate<E, T> {
@@ -498,6 +559,24 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
     abstract inner class SourceEventStream<T> protected constructor() : EventStream<T>() {
 
         abstract override val dependency: SourceDependency<T>
+
+    }
+
+    infix fun ticker(duration: Duration): TickerEventStreamDelegateProvider {
+        return TickerEventStreamDelegateProvider(duration)
+    }
+
+    inner class TickerEventStreamDelegateProvider(private val duration: Duration) {
+
+        operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): InputEventStreamDelegate<Unit> {
+            val inputEventStream = createInputEventStream<Unit>(property.name)
+            val eventHandler = EventHandler<ActionEvent> { inputEventStream.sendValue(Unit) }
+            val keyFrame = KeyFrame(duration, eventHandler)
+            val timeline = Timeline(keyFrame)
+            timeline.cycleCount = Timeline.INDEFINITE
+            timeline.play()
+            return InputEventStreamDelegate(inputEventStream)
+        }
 
     }
 

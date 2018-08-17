@@ -143,6 +143,35 @@ internal class CombineDependency3<A, B, C, R>(
 
 }
 
+internal class LazyDependency<T> : UpdateDependency<T>() {
+
+    private lateinit var argument: Dependency<T>
+
+    fun loop(dependency: Dependency<T>) {
+        if (this::argument.isInitialized) {
+            throw IllegalStateException("already closed")
+        }
+        argument = dependency
+    }
+
+    override fun getDependencies(): Sequence<Dependency<*>> {
+        return sequenceOf(argument)
+    }
+
+    override fun update() {
+        val transaction = argument.getTransaction()
+        if (transaction > buffer.getTransaction()) {
+            val value = argument.getValue()
+            buffer.setValue(transaction, value)
+        }
+    }
+
+    override fun toUpdateString(): String {
+        return argument.toString()
+    }
+
+}
+
 /*
 class LazyExpr<T> internal constructor(private val name: String) : FenjaSystem.UpdateExpr<T>() {
 
@@ -156,27 +185,6 @@ class LazyExpr<T> internal constructor(private val name: String) : FenjaSystem.U
         return name
     }
 
-    private inner class LazyDependency: UpdateDependency<T>() {
-
-        internal lateinit var argument: Dependency<T>
-
-        override fun getDependencies(): Sequence<Dependency<*>> {
-            return sequenceOf(argument)
-        }
-
-        override fun update() {
-            val transaction = argument.getTransaction()
-            if (transaction > buffer.getTransaction()) {
-                val value = argument.getValue()
-                buffer.setValue(transaction, value)
-            }
-        }
-
-        override fun toUpdateString(): String {
-            return this@LazyExpr.toString()
-        }
-
-    }
 
 }
 */
