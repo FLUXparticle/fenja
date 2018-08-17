@@ -25,7 +25,7 @@ internal class InitDependency<T>(private val source: Dependency<T>, initEvent: T
     }
 
     override fun toUpdateString(): String {
-        return source.toString()
+        return "init $source"
     }
 
 }

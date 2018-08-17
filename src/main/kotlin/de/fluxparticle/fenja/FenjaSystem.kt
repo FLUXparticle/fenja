@@ -5,11 +5,14 @@ import de.fluxparticle.fenja.dependency.MapDependency
 import de.fluxparticle.fenja.dependency.SourceDependency
 import de.fluxparticle.fenja.dependency.UpdateDependency
 import de.fluxparticle.fenja.expr.*
+import de.fluxparticle.fenja.list.LoopList
 import de.fluxparticle.fenja.list.ReadList
+import de.fluxparticle.fenja.list.ReadWriteList
 import de.fluxparticle.fenja.logger.FenjaSystemLogger
 import de.fluxparticle.fenja.logger.SilentFenjaSystemLogger
 import de.fluxparticle.fenja.operation.ListAddComponent
 import de.fluxparticle.fenja.operation.ListOperation
+import de.fluxparticle.fenja.operation.ReadWriteListAdapter
 import de.fluxparticle.fenja.operation.algorithm.Composer
 import de.fluxparticle.fenja.operation.algorithm.Filter
 import de.fluxparticle.fenja.operation.algorithm.Inverter
@@ -184,6 +187,16 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     }
 
+    inner class InputEventStreamDelegateProvider<T>(private val tProperty: Property<T>) {
+
+        operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): InputEventStreamDelegate<T> {
+            val inputEventStream = createInputEventStream<T>(property.name)
+            inputEventStream bind tProperty
+            return InputEventStreamDelegate(inputEventStream)
+        }
+
+    }
+
     inner class UpdateExprDelegate<E : UpdateExpr<T>, T>(private val updateDependency: E) : ReadOnlyProperty<Any?, E> {
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): E {
@@ -269,10 +282,8 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     }
 
-    fun <T> changesOf(property: Property<T>): InputEventStreamDelegate<T> {
-        val inputEventStream = createInputEventStream<T>(property.name)
-        inputEventStream bind property
-        return InputEventStreamDelegate(inputEventStream)
+    fun <T> changesOf(property: Property<T>): InputEventStreamDelegateProvider<T> {
+        return InputEventStreamDelegateProvider(property)
     }
 
     operator fun <E : UpdateExpr<T>, T> E.provideDelegate(thisRef: Any?, property: KProperty<*>): UpdateExprDelegate<E, T> {
@@ -327,20 +338,67 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     abstract inner class ListExpr<T> internal constructor() : UpdateExpr<List<T>>() {
 
-        abstract override val dependency: ListDependency<T>
-
         internal abstract val source: EventStream<ListOperation<T>>
+
+        final override val dependency = ListDependency()
 
         internal val list: ReadList<T>
             get() = dependency.list
+
+        init {
+            updateDependencies.add(dependency)
+        }
+
+        internal inner class ListDependency : UpdateDependency<List<T>>() {
+
+            private val source
+                get() = this@ListExpr.source.dependency
+
+            private val loopList = LoopList<T>()
+
+            internal val list: ReadList<T>
+                get() = loopList
+
+            internal fun loopList(list: ReadWriteList<T>) {
+                loopList.loop(list)
+            }
+
+            init {
+                buffer.setValue(-1L, LoopList())
+            }
+
+            override fun update() {
+                val transaction = source.getTransaction()
+                if (transaction > buffer.getTransaction()) {
+
+                    val value = source.getValue()
+                    val readWriteList = buffer.getValue() as ReadWriteList<T>
+                    value.apply(ReadWriteListAdapter(readWriteList))
+                    buffer.setValue(transaction, readWriteList)
+
+                }
+            }
+
+            override fun updateLoop() {
+                val value = source.getValue()
+                value.apply(ReadWriteListAdapter(loopList))
+            }
+
+            override fun getDependencies(): Sequence<Dependency<*>> {
+                return sequenceOf(source)
+            }
+
+            override fun toUpdateString(): String {
+                return source.toString()
+            }
+
+        }
 
     }
 
     inner class HoldListExpr<T> internal constructor(
             override val source: EventStream<ListOperation<T>>
     ): ListExpr<T>() {
-
-        override val dependency: ListDependency<T> = ListDependency(source.dependency)
 
     }
 
@@ -355,23 +413,12 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
             predicateExpr: FenjaSystem.Expr<(T) -> Boolean>
     ) : ListExpr<T>() {
 
-        override val source = FilterListOperationEventStream(source, predicateExpr)
-
-        override val dependency: ListDependency<T> = ListDependency(this.source.dependency)
+        override val source = SimpleEventStream(FilterListOperationDependency(source.dependency, predicateExpr.dependency))
 
         fun reverseTransform(operation: ListOperation<T>): ListOperation<T> {
-            val inverseDiffOp = source.dependency.diffOp.apply(Inverter())
+            val inverseDiffOp = (source.dependency as FilterListOperationDependency).diffOp.apply(Inverter())
             val (reverseTransformation, _) = Transformer.transform(operation, inverseDiffOp)
             return reverseTransformation
-        }
-
-        internal inner class FilterListOperationEventStream(
-                source: EventStream<ListOperation<T>>,
-                predicateExpr: FenjaSystem.Expr<(T) -> Boolean>
-        ) : FenjaSystem.UpdateEventStream<ListOperation<T>>() {
-
-            override val dependency = FilterListOperationDependency(source.dependency, predicateExpr.dependency)
-
         }
 
         internal inner class FilterListOperationDependency(

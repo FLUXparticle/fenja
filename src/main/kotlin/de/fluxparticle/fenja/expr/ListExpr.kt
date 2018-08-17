@@ -1,12 +1,7 @@
 package de.fluxparticle.fenja.expr
 
 import de.fluxparticle.fenja.FenjaSystem.ListExpr
-import de.fluxparticle.fenja.dependency.Dependency
-import de.fluxparticle.fenja.dependency.UpdateDependency
 import de.fluxparticle.fenja.list.DelegatedList
-import de.fluxparticle.fenja.list.LoopList
-import de.fluxparticle.fenja.list.ReadList
-import de.fluxparticle.fenja.list.ReadWriteList
 import de.fluxparticle.fenja.operation.*
 
 /**
@@ -75,50 +70,6 @@ fun <T> ListExpr<T>.buildRemoveOperation(index: Int): ListOperation<T> {
     }
 
     return ListOperation(result)
-}
-
-internal class ListDependency<T>(
-        internal val source: Dependency<ListOperation<T>>
-) : UpdateDependency<List<T>>() {
-
-    private val loopList = LoopList<T>()
-
-    internal val list: ReadList<T>
-        get() = loopList
-
-    internal fun loopList(list: ReadWriteList<T>) {
-        loopList.loop(list)
-    }
-
-    init {
-        buffer.setValue(-1L, LoopList())
-    }
-
-    override fun update() {
-        val transaction = source.getTransaction()
-        if (transaction > buffer.getTransaction()) {
-
-            val value = source.getValue()
-            val readWriteList = buffer.getValue() as ReadWriteList<T>
-            value.apply(ReadWriteListAdapter(readWriteList))
-            buffer.setValue(transaction, readWriteList)
-
-        }
-    }
-
-    override fun updateLoop() {
-        val value = source.getValue()
-        value.apply(ReadWriteListAdapter(loopList))
-    }
-
-    override fun getDependencies(): Sequence<Dependency<*>> {
-        return sequenceOf(source)
-    }
-
-    override fun toUpdateString(): String {
-        return source.toString()
-    }
-
 }
 
 infix fun <T> MutableList<T>.bind(listExpr: ListExpr<T>) {
