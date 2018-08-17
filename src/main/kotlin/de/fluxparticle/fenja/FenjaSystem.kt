@@ -21,7 +21,6 @@ import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.properties.ReadOnlyProperty
-import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 /**
@@ -63,7 +62,7 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
     fun <T> createInputEventStream(name: String): InputEventStream<T> {
         checkNotFinished()
         checkName(name)
-        val eventStreamSource = InputEventStream<T>(name, transactionProvider, logger)
+        val eventStreamSource = InputEventStream<T>(name)
         sourceDependencies[name] = eventStreamSource.dependency
         return eventStreamSource
     }
@@ -177,14 +176,10 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
         return InputExprDelegate(inputExpr)
     }
 
-    inner class InputEventStreamDelegate<T> : ReadOnlyProperty<Any, InputEventStream<T>> {
+    inner class InputEventStreamDelegate<T>(private val sourceEventStream: InputEventStream<T>) : ReadOnlyProperty<Any?, InputEventStream<T>> {
 
-        private var sourceEventStream: InputEventStream<T>? = null
-
-        override fun getValue(thisRef: Any, property: KProperty<*>): InputEventStream<T> {
-            return sourceEventStream ?: createInputEventStream<T>(property.name).also {
-                sourceEventStream = it
-            }
+        override fun getValue(thisRef: Any?, property: KProperty<*>): InputEventStream<T> {
+            return sourceEventStream
         }
 
     }
@@ -197,21 +192,10 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     }
 
-    inner class UpdateEventStreamDelegate<E : UpdateEventStream<T>, T> : ReadWriteProperty<Any, E> {
+    inner class UpdateEventStreamDelegate<E : UpdateEventStream<T>, T>(private val updateDependency: E) : ReadOnlyProperty<Any?, E> {
 
-        private lateinit var updateDependency: E
-
-        override fun getValue(thisRef: Any, property: KProperty<*>): E {
+        override fun getValue(thisRef: Any?, property: KProperty<*>): E {
             return updateDependency
-        }
-
-        override fun setValue(thisRef: Any, property: KProperty<*>, value: E) {
-            checkNotFinished()
-            if (this::updateDependency.isInitialized) {
-                throw IllegalStateException("already assigned")
-            }
-            createUpdateDependency(property.name, value.dependency)
-            updateDependency = value
         }
 
     }
@@ -279,15 +263,26 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
         final override fun identity() = this
 
-        operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): UpdateExprDelegate<UpdateExpr<T>, T> {
-            createUpdateDependency(property.name, dependency)
-            return UpdateExprDelegate(this)
-        }
-
         override fun toString(): String {
             return dependency.toUpdateString()
         }
 
+    }
+
+    fun <T> changesOf(property: Property<T>): InputEventStreamDelegate<T> {
+        val inputEventStream = createInputEventStream<T>(property.name)
+        inputEventStream bind property
+        return InputEventStreamDelegate(inputEventStream)
+    }
+
+    operator fun <E : UpdateExpr<T>, T> E.provideDelegate(thisRef: Any?, property: KProperty<*>): UpdateExprDelegate<E, T> {
+        createUpdateDependency(property.name, dependency)
+        return UpdateExprDelegate(this)
+    }
+
+    operator fun <E : UpdateEventStream<T>, T> E.provideDelegate(thisRef: Any?, property: KProperty<*>): UpdateEventStreamDelegate<E, T> {
+        createUpdateDependency(property.name, dependency)
+        return UpdateEventStreamDelegate(this)
     }
 
     inner class SimpleExpr<T> internal constructor(override val dependency: UpdateDependency<T>) : UpdateExpr<T>() {
@@ -326,7 +321,7 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     fun max(sequence: Sequence<Expr<Double>>): UpdateExpr<Double> = SimpleExpr(MaxDependency(sequence.map { it.dependency }))
 
-    infix fun <T> Property<in T>.bind(expr: FenjaSystem.UpdateExpr<T>) {
+    infix fun <T> Property<in T>.bind(expr: UpdateExpr<T>) {
         SimpleExpr(PropertyDependency(expr.dependency, this))
     }
 
@@ -460,9 +455,7 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
     }
 
     inner class InputEventStream<T> internal constructor(
-            name: String,
-            transactionProvider: TransactionProvider,
-            logger: FenjaSystemLogger
+            name: String
     ) : SourceEventStream<T>() {
 
         override val dependency = SourceDependency<T>(name, transactionProvider, logger)
@@ -485,6 +478,10 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
             updateDependencies.add(dependency)
         }
 
+    }
+
+    infix fun <T> Property<in T>.bind(expr: UpdateEventStream<T>) {
+        SimpleEventStream(PropertyDependency(expr.dependency, this))
     }
 
 }

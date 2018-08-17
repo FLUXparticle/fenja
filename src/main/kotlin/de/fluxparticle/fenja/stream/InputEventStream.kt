@@ -19,7 +19,7 @@ fun <T : Event> InputEventStream<T>.bind(node: Node, eventType: EventType<T>) {
     node.addEventHandler(eventType) { sendValue(it) }
 }
 
-infix fun <T> InputEventStream<T>.bind(observableValue: ObservableValue<T>) {
+internal infix fun <T> InputEventStream<T>.bind(observableValue: ObservableValue<T>) {
     observableValue.addListener { _, _, newValue -> sendValue(newValue) }
 }
 

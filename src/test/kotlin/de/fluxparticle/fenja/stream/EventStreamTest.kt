@@ -1,34 +1,36 @@
 package de.fluxparticle.fenja.stream
 
+import de.fluxparticle.fenja.FenjaSystem
+import de.fluxparticle.fenja.PropertyDelegateProvider
+import de.fluxparticle.fenja.logger.DelegateFenjaSystemLogger
+import de.fluxparticle.fenja.logger.PrintFenjaSystemLogger
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
 /**
  * Created by sreinck on 04.08.18.
  */
-/*
 class EventStreamTest {
 
     private val logger = DelegateFenjaSystemLogger(PrintFenjaSystemLogger(System.out))
 
-    private val system = FenjaSystem(logger)
+    private val input by PropertyDelegateProvider<Int>()
 
-    private val input by system.InputEventStreamDelegate<Int>()
-
-    private var output: FenjaSystem.UpdateEventStream<String> by system.UpdateEventStreamDelegate()
+    private val output by PropertyDelegateProvider<String>()
 
     @Test
     fun simple1() {
-        output = input map { it.toString() }
+        FenjaSystem.build(logger) {
+            val input by changesOf(input)
 
-        system.finish()
+            val string by input map { it.toString() }
 
-        val mockLogger: FenjaSystemLogger = mock()
-        val teeLogger = TeeFenjaSystemLogger(mockLogger, PrintFenjaSystemLogger(System.out))
-        logger.setDelegate(teeLogger)
+            output bind string
+        }
 
-        input.sendValue(42)
+        input.value = 42
 
-        verify(mockLogger).updateSource(any())
-        verify(mockLogger).executeUpdate(any())
+        assertEquals("42", output.value)
     }
 
 }
-*/
