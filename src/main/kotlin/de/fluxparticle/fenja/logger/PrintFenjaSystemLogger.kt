@@ -18,7 +18,15 @@ class PrintFenjaSystemLogger(private val out: PrintWriter) : FenjaSystemLogger()
     }
 
     override fun executeUpdate(update: UpdateDependency<*>) {
-        out.println("${update.toUpdateString()} -> ${update.name} = ${update.getValue()}")
+        val sb = StringBuilder()
+
+        sb.append(update.toUpdateString())
+        if (update.name != null) {
+            sb.append(" -> ${update.name}")
+        }
+        sb.append(" = ${update.getValue()}")
+
+        out.println(sb.toString())
     }
 
     override fun ruleLists(headline: String, map: Map<Dependency<*>, List<UpdateDependency<*>>>) {

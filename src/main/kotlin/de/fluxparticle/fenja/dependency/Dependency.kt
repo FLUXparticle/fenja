@@ -2,8 +2,6 @@ package de.fluxparticle.fenja.dependency
 
 import de.fluxparticle.fenja.logger.FenjaSystemLogger
 import de.fluxparticle.fenja.stream.TransactionProvider
-import de.fluxparticle.fenja.value.LoopValue
-import de.fluxparticle.fenja.value.ReadWriteValue
 
 /**
  * Created by sreinck on 05.08.18.
@@ -16,41 +14,9 @@ internal sealed class Dependency<T> {
 
     fun getValue() = buffer.getValue()
 
-    abstract fun getDependencyNames(): Sequence<String>
-
     abstract fun getDependencies(): Sequence<Dependency<*>>
 
     abstract override fun toString(): String
-
-}
-
-internal abstract class UpdateDependency<T> : Dependency<T>() {
-
-    var name: String? = null
-
-    private val loopValue = LoopValue<T>()
-
-    final override fun getDependencyNames(): Sequence<String> {
-        return name
-                ?.let { sequenceOf(it) }
-                ?: getDependencies().flatMap { it.getDependencyNames() }
-    }
-
-    abstract fun update()
-
-    fun loop(destination: ReadWriteValue<T>) {
-        loopValue.loop(destination)
-    }
-
-    open fun updateLoop() {
-        loopValue.value = buffer.getValue()
-    }
-
-    abstract fun toUpdateString(): String
-
-    final override fun toString(): String {
-        return name ?: toUpdateString()
-    }
 
 }
 
@@ -65,18 +31,16 @@ internal class SourceDependency<T>(
     fun executeUpdates(value: T) {
         val transaction = transactionProvider.newTransaction()
         buffer.setValue(transaction, value)
-        logger.updateSource(this)
-        updates?.forEach {
-            it.update()
-            logger.executeUpdate(it)
+        updates?.let { updates ->
+            logger.updateSource(this)
+            updates.forEach {
+                it.update()
+                logger.executeUpdate(it)
+            }
+            updates.forEach {
+                it.updateLoop()
+            }
         }
-        updates?.forEach {
-            it.updateLoop()
-        }
-    }
-
-    override fun getDependencyNames(): Sequence<String> {
-        return sequenceOf(name)
     }
 
     override fun getDependencies(): Sequence<Dependency<*>> {
@@ -85,6 +49,24 @@ internal class SourceDependency<T>(
 
     override fun toString(): String {
         return name
+    }
+
+}
+
+internal abstract class UpdateDependency<T> : Dependency<T>() {
+
+    var name: String? = null
+
+    abstract fun update()
+
+    open fun updateLoop() {
+        // empty
+    }
+
+    abstract fun toUpdateString(): String
+
+    final override fun toString(): String {
+        return name ?: toUpdateString()
     }
 
 }
@@ -109,30 +91,3 @@ internal class MapDependency<T, R>(private val source: Dependency<T>, private va
     }
 
 }
-
-/*
-abstract class SourceDependency<T>(
-        val name: String,
-        private val transactionProvider: TransactionProvider,
-        private val logger: FenjaSystemLogger
-) : Dependency<T>() {
-
-    var updates: List<UpdateDependency<*>>? = null
-
-    fun sendValue(value: T) {
-        val transaction = transactionProvider.newTransaction()
-        buffer.setValue(transaction, value)
-        logger.updateSource(this, value)
-        updates?.forEach { it.update() }
-    }
-
-    final override fun <R> accept(visitor: DependencyVisitor<R>): R {
-        return visitor.visit(this)
-    }
-
-    override fun toString(): String {
-        return name
-    }
-
-}
-*/

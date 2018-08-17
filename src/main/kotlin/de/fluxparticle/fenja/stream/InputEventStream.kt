@@ -1,11 +1,8 @@
 package de.fluxparticle.fenja.stream
 
-import de.fluxparticle.fenja.dependency.SourceDependency
-import de.fluxparticle.fenja.logger.FenjaSystemLogger
-import de.fluxparticle.fenja.value.PropertyValue
+import de.fluxparticle.fenja.FenjaSystem.InputEventStream
 import javafx.animation.KeyFrame
 import javafx.animation.Timeline
-import javafx.beans.property.Property
 import javafx.beans.value.ObservableValue
 import javafx.event.ActionEvent
 import javafx.event.Event
@@ -17,19 +14,6 @@ import javafx.util.Duration
 /**
  * Created by sreinck on 05.08.18.
  */
-class InputEventStream<T> internal constructor(
-        name: String,
-        transactionProvider: TransactionProvider,
-        logger: FenjaSystemLogger
-) : SourceEventStream<T>() {
-
-    override val dependency = SourceDependency<T>(name, transactionProvider, logger)
-
-    fun sendValue(value: T) {
-        dependency.executeUpdates(value)
-    }
-
-}
 
 fun <T : Event> InputEventStream<T>.bind(node: Node, eventType: EventType<T>) {
     node.addEventHandler(eventType) { sendValue(it) }
@@ -45,8 +29,4 @@ infix fun InputEventStream<Unit>.ticker(duration: Duration) {
     val timeline = Timeline(keyFrame)
     timeline.cycleCount = Timeline.INDEFINITE
     timeline.play()
-}
-
-infix fun <T> Property<T>.bind(eventStream: UpdateEventStream<T>) {
-    eventStream.dependency.loop(PropertyValue(this))
 }
