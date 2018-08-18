@@ -171,20 +171,3 @@ internal class LazyDependency<T> : UpdateDependency<T>() {
     }
 
 }
-
-/*
-class LazyExpr<T> internal constructor(private val name: String) : FenjaSystem.UpdateExpr<T>() {
-
-    override val dependency: UpdateDependency<T> = LazyDependency()
-
-    fun setExpr(argument: Expr<T>) {
-        (dependency as LazyDependency).argument = argument.dependency
-    }
-
-    override fun toString(): String {
-        return name
-    }
-
-
-}
-*/

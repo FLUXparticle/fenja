@@ -45,10 +45,11 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
     companion object {
 
         @JvmStatic
-        fun build(logger: FenjaSystemLogger = SilentFenjaSystemLogger(), buildFunc: FenjaSystem.() -> Unit) {
+        fun <R> build(logger: FenjaSystemLogger = SilentFenjaSystemLogger(), buildFunc: FenjaSystem.() -> R): R {
             val system = FenjaSystem(logger)
-            buildFunc.invoke(system)
+            val result = buildFunc.invoke(system)
             system.finish()
+            return result
         }
 
     }
@@ -81,14 +82,11 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
         return eventStreamSource
     }
 
-/*
-    TODO
     fun <T> createUpdateExpr(name: String): LazyExpr<T> {
         val lazyExpr = LazyExpr<T>(name)
         createUpdateDependency(name, lazyExpr.dependency)
         return lazyExpr
     }
-*/
 
     private fun <T> createUpdateDependency(name: String, dependency: UpdateDependency<T>) {
         checkNotFinished()
@@ -196,15 +194,7 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
         return InputExprDelegate(inputExpr)
     }
 
-    inner class LazyExprDelegateProvider<E : UpdateExpr<T>, T> {
-
-        operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): LazyExprDelegate<E, T> {
-            return LazyExprDelegate(property.name)
-        }
-
-    }
-
-    inner class LazyExprDelegate<E : UpdateExpr<T>, T> internal constructor (private val name: String) : ReadWriteProperty<Any?, E> {
+    inner class LoopExprDelegate<E : UpdateExpr<T>, T> internal constructor() : ReadWriteProperty<Any?, E> {
 
         private lateinit var expr: E
 
@@ -222,8 +212,8 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     }
 
-    fun <E : UpdateExpr<T>, T> loop(): LazyExprDelegateProvider<E, T> {
-        return LazyExprDelegateProvider()
+    fun <E : UpdateExpr<T>, T> loop(): LoopExprDelegate<E, T> {
+        return LoopExprDelegate()
     }
 
     inner class InputEventStreamDelegate<T>(private val sourceEventStream: InputEventStream<T>) : ReadOnlyProperty<Any?, InputEventStream<T>> {
@@ -357,10 +347,22 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
         return UpdateEventStreamDelegate(this)
     }
 
-    inner class SimpleExpr<T> internal constructor(override val dependency: UpdateDependency<T>) : UpdateExpr<T>() {
+    open inner class SimpleExpr<T> internal constructor(final override val dependency: UpdateDependency<T>) : UpdateExpr<T>() {
 
         init {
             updateDependencies.add(dependency)
+        }
+
+    }
+
+    inner class LazyExpr<T> internal constructor(private val name: String) : SimpleExpr<T>(LazyDependency()) {
+
+        fun setExpr(argument: FenjaSystem.Expr<T>) {
+            (dependency as LazyDependency).loop(argument.dependency)
+        }
+
+        override fun toString(): String {
+            return name
         }
 
     }
