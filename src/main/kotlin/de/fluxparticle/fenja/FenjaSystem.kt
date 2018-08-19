@@ -357,6 +357,9 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     inner class LazyExpr<T> internal constructor(private val name: String) : SimpleExpr<T>(LazyDependency()) {
 
+        val isLooped: Boolean
+            get() = (dependency as LazyDependency).isLooped
+
         fun setExpr(argument: FenjaSystem.Expr<T>) {
             (dependency as LazyDependency).loop(argument.dependency)
         }

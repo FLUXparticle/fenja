@@ -147,9 +147,12 @@ internal class LazyDependency<T> : UpdateDependency<T>() {
 
     private lateinit var argument: Dependency<T>
 
+    val isLooped: Boolean
+        get() = this::argument.isInitialized
+
     fun loop(dependency: Dependency<T>) {
-        if (this::argument.isInitialized) {
-            throw IllegalStateException("already closed")
+        if (isLooped) {
+            throw IllegalStateException("already looped")
         }
         argument = dependency
     }
