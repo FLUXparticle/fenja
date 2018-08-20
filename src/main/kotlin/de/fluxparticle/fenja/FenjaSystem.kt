@@ -33,6 +33,7 @@ import javafx.util.Duration
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
+import kotlin.collections.LinkedHashSet
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -60,6 +61,8 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     private val sourceDependencies = TreeMap<String, SourceDependency<*>>()
 
+    private val constExpressions = mutableMapOf<Any?, InputExpr<*>>()
+
     private val updateDependencies = mutableListOf<UpdateDependency<*>>()
 
     private var finished: Boolean = false
@@ -72,6 +75,13 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
         val inputExpr = InputExpr<T>(name)
         sourceDependencies[name] = inputExpr.dependency
         return inputExpr
+    }
+
+    fun <T> const(value: T): InputExpr<T> {
+        checkNotFinished()
+        return constExpressions.getOrPut(value) {
+            InputExpr<T>(value.toString()).apply { setValue(value) }
+        } as InputExpr<T>
     }
 
     fun <T> createInputEventStream(name: String): InputEventStream<T> {
@@ -108,17 +118,20 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
         logger.ruleLists("updates", updates);
 
         sourceDependencies.forEach { _, source ->
-            if (source is InputExpr<*> && source.getTransaction() < 0) {
-                throw RuntimeException("variable " + source.name + " does not have a value")
+/*
+            if (source.getTransaction() < 0) {
+                throw RuntimeException("variable '${source.name}' does not have a value")
             }
+*/
             source.updates = TopologicalSorting().sort(source).result.filterIsInstance<UpdateDependency<*>>()
         }
 
-        sourceDependencies.values
-                .reversed()
+        val result = (sourceDependencies.values + constExpressions.values.map { it.dependency } )
+                .asReversed()
                 .fold(TopologicalSorting(), TopologicalSorting::sort)
                 .result
-                .forEach {
+
+        result.forEach {
                     when (it) {
                         is SourceDependency<*> -> logger.updateSource(it)
                         is UpdateDependency<*> -> {
@@ -151,6 +164,8 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
         private val visited = HashSet<UpdateDependency<*>>()
 
+        private val temporary = LinkedHashSet<UpdateDependency<*>>()
+
         internal fun sort(source: SourceDependency<*>): TopologicalSorting {
             updates[source]?.forEach { visit(it) }
             result.addFirst(source)
@@ -159,10 +174,22 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
         private fun visit(updateDependency: UpdateDependency<*>) {
             if (!visited.contains(updateDependency)) {
-                updates[updateDependency]?.forEach { visit(it) }
+                if (temporary.contains(updateDependency)) {
+                    val cycle = temporary.asSequence().dropWhile { it != updateDependency } + updateDependency
+                    val str = (sequenceOf("cycle detected") + cycle.map { it.toString() })
+                            .joinToString("\n")
+                    throw IllegalArgumentException(str)
+                }
+                updateDependency.forEachChildren { visit(it) }
                 visited.add(updateDependency)
                 result.addFirst(updateDependency)
             }
+        }
+
+        private inline fun UpdateDependency<*>.forEachChildren(func: (UpdateDependency<*>) -> Unit) = also {
+            temporary.add(it)
+            updates[it]?.forEach(func)
+            temporary.remove(it)
         }
 
     }
@@ -311,6 +338,10 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
         override val dependency = SourceDependency<T>(name, transactionProvider, logger)
 
+        val isSet: Boolean
+            get() = dependency.isSet
+
+
         fun setValue(value: T) {
             dependency.executeUpdates(value)
         }
@@ -380,19 +411,19 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     operator fun Expr<Double>.plus(other: Expr<Double>): UpdateExpr<Double> = SimpleExpr(PlusDependency(this.dependency, other.dependency))
 
-    operator fun Expr<Double>.plus(other: Double): UpdateExpr<Double> = SimpleExpr(PlusDependency(dependency, ConstDependency(other)))
+    operator fun Expr<Double>.plus(other: Double): UpdateExpr<Double> = plus(const(other))
 
     operator fun Expr<Double>.minus(other: Expr<Double>): UpdateExpr<Double> = SimpleExpr(MinusDependency(this.dependency, other.dependency))
 
-    operator fun Expr<Double>.minus(other: Double): UpdateExpr<Double> = SimpleExpr(MinusDependency(dependency, ConstDependency(other)))
+    operator fun Expr<Double>.minus(other: Double): UpdateExpr<Double> = minus(const(other))
 
     operator fun Expr<Double>.times(other: Expr<Double>): UpdateExpr<Double> = SimpleExpr(TimesDependency(this.dependency, other.dependency))
 
-    operator fun Expr<Double>.times(other: Double): UpdateExpr<Double> = SimpleExpr(TimesDependency(dependency, ConstDependency(other)))
+    operator fun Expr<Double>.times(other: Double): UpdateExpr<Double> = times(const(other))
 
     operator fun Expr<Double>.div(other: Expr<Double>): UpdateExpr<Double> = SimpleExpr(DivDependency(this.dependency, other.dependency))
 
-    operator fun Expr<Double>.div(other: Double) = SimpleExpr(DivDependency(dependency, ConstDependency(other)))
+    operator fun Expr<Double>.div(other: Double) = div(const(other))
 
     fun min(sequence: Sequence<Expr<Double>>): UpdateExpr<Double> = SimpleExpr(MinDependency(sequence.map { it.dependency }))
 

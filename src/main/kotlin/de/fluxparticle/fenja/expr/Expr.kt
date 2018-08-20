@@ -41,6 +41,7 @@ internal class PropertyDependency<T>(
 
 }
 
+/*
 internal class ConstDependency<T>(initValue: T) : UpdateDependency<T>() {
 
     init {
@@ -60,6 +61,7 @@ internal class ConstDependency<T>(initValue: T) : UpdateDependency<T>() {
     }
 
 }
+*/
 
 internal class IdentityDependency<T>(
         private val argument: Dependency<T>

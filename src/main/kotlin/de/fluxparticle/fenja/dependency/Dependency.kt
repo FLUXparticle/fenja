@@ -12,7 +12,12 @@ internal sealed class Dependency<T> {
 
     fun getTransaction() = buffer.getTransaction()
 
-    fun getValue() = buffer.getValue()
+    fun getValue(): T {
+        if (getTransaction() < 0) {
+            throw IllegalStateException("'${toString()}' is not set")
+        }
+        return buffer.getValue()
+    }
 
     abstract fun getDependencies(): Sequence<Dependency<*>>
 
@@ -27,6 +32,9 @@ internal class SourceDependency<T>(
 ) : Dependency<T>() {
 
     internal var updates: List<UpdateDependency<*>>? = null
+
+    val isSet: Boolean
+        get() = buffer.getTransaction() >= 0
 
     fun executeUpdates(value: T) {
         val transaction = transactionProvider.newTransaction()

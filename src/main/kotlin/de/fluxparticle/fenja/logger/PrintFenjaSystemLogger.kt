@@ -14,7 +14,13 @@ class PrintFenjaSystemLogger(private val out: PrintWriter) : FenjaSystemLogger()
     constructor(stream: OutputStream) : this(PrintWriter(stream, true))
 
     override fun updateSource(source: SourceDependency<*>) {
-         out.println("===== ${source.name} = ${source.getValue()} =====")
+        val sb = StringBuilder()
+        sb.append(source.name)
+        if (source.getTransaction() >= 0) {
+            sb.append(" = ")
+            sb.append(source.getValue())
+        }
+         out.println("===== $sb =====")
     }
 
     override fun executeUpdate(update: UpdateDependency<*>) {
@@ -22,9 +28,13 @@ class PrintFenjaSystemLogger(private val out: PrintWriter) : FenjaSystemLogger()
 
         sb.append(update.toUpdateString())
         if (update.name != null) {
-            sb.append(" -> ${update.name}")
+            sb.append(" -> ")
+            sb.append(update.name)
         }
-        sb.append(" = ${update.getValue()}")
+        if (update.getTransaction() >= 0) {
+            sb.append(" = ")
+            sb.append(update.getValue())
+        }
 
         out.println(sb.toString())
     }

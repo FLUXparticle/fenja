@@ -144,9 +144,10 @@ internal class MinDependency(
     }
 
     override fun update() {
-        val transaction = arguments.map { it.getTransaction() }.max()!!
+        // TODO den Fall, dass die Liste leer ist, besser behandeln
+        val transaction = arguments.map { it.getTransaction() }.max() ?: 0
         if (transaction > buffer.getTransaction()) {
-            val value = arguments.map { it.getValue() }.min()!!
+            val value = arguments.map { it.getValue() }.min() ?: 0.0
             buffer.setValue(transaction, value)
         }
     }
