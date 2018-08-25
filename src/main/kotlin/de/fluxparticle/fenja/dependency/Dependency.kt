@@ -25,6 +25,22 @@ internal sealed class Dependency<T> {
 
 }
 
+internal class NoDependency<T> : UpdateDependency<T>() {
+
+    override fun getDependencies(): Sequence<Dependency<*>> {
+        return emptySequence()
+    }
+
+    override fun update() {
+        // empty
+    }
+
+    override fun toUpdateString(): String {
+        return "_"
+    }
+
+}
+
 internal class SourceDependency<T>(
         val name: String,
         private val transactionProvider: TransactionProvider,

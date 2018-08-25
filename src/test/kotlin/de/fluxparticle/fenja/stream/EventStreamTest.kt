@@ -2,6 +2,7 @@ package de.fluxparticle.fenja.stream
 
 import de.fluxparticle.fenja.FenjaSystem
 import de.fluxparticle.fenja.PropertyDelegateProvider
+import de.fluxparticle.fenja.bind
 import de.fluxparticle.fenja.logger.DelegateFenjaSystemLogger
 import de.fluxparticle.fenja.logger.PrintFenjaSystemLogger
 import org.junit.Assert.assertEquals

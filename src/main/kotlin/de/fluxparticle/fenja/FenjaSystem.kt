@@ -1,9 +1,6 @@
 package de.fluxparticle.fenja
 
-import de.fluxparticle.fenja.dependency.Dependency
-import de.fluxparticle.fenja.dependency.MapDependency
-import de.fluxparticle.fenja.dependency.SourceDependency
-import de.fluxparticle.fenja.dependency.UpdateDependency
+import de.fluxparticle.fenja.dependency.*
 import de.fluxparticle.fenja.expr.*
 import de.fluxparticle.fenja.list.LoopList
 import de.fluxparticle.fenja.list.ReadList
@@ -264,11 +261,19 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
     inner class NodeEventStreamDelegateProvider<E : Event>(private val node: Node, private val eventType: EventType<E>) {
 
         operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): InputEventStreamDelegate<E> {
-            val inputEventStream = createInputEventStream<E>(property.name)
-            node.addEventHandler(eventType) { inputEventStream.sendValue(it) }
+            val inputEventStream = eventsOf(property.name, node, eventType)
             return InputEventStreamDelegate(inputEventStream)
         }
 
+    }
+
+    fun <E : Event> eventsOf(name: String, node: Node, eventType: EventType<E>): InputEventStream<E> {
+        val inputEventStream = createInputEventStream<E>(name)
+        node.addEventHandler(eventType) {
+            inputEventStream.sendValue(it)
+            it.consume()
+        }
+        return inputEventStream
     }
 
     inner class UpdateExprDelegate<E : UpdateExpr<T>, T>(private val updateDependency: E) : ReadOnlyProperty<Any?, E> {
@@ -290,6 +295,9 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
     abstract inner class Expr<T> protected constructor() {
 
         internal abstract val dependency: Dependency<T>
+        
+        internal val system: FenjaSystem
+            get() = this@FenjaSystem
 
         fun sample(): T = dependency.getValue()
 
@@ -386,6 +394,10 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     }
 
+    fun min(sequence: Sequence<FenjaSystem.Expr<Double>>): FenjaSystem.UpdateExpr<Double> = SimpleExpr(MinDependency(sequence.map { it.dependency }))
+
+    fun max(sequence: Sequence<FenjaSystem.Expr<Double>>): FenjaSystem.UpdateExpr<Double> = SimpleExpr(MaxDependency(sequence.map { it.dependency }))
+
     inner class LazyExpr<T> internal constructor(private val name: String) : SimpleExpr<T>(LazyDependency()) {
 
         val isLooped: Boolean
@@ -399,38 +411,6 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
             return name
         }
 
-    }
-
-    operator fun Expr<Boolean>.not(): UpdateExpr<Boolean> = SimpleExpr(NotDependency(dependency))
-
-    infix fun Expr<Boolean>.and(other: Expr<Boolean>): UpdateExpr<Boolean> = SimpleExpr(AndDependency(this.dependency, other.dependency))
-
-    infix fun Expr<Boolean>.or(other: Expr<Boolean>): UpdateExpr<Boolean> = SimpleExpr(OrDependency(this.dependency, other.dependency))
-
-    operator fun Expr<Double>.unaryMinus(): UpdateExpr<Double> = SimpleExpr(NegDependency(dependency))
-
-    operator fun Expr<Double>.plus(other: Expr<Double>): UpdateExpr<Double> = SimpleExpr(PlusDependency(this.dependency, other.dependency))
-
-    operator fun Expr<Double>.plus(other: Double): UpdateExpr<Double> = plus(const(other))
-
-    operator fun Expr<Double>.minus(other: Expr<Double>): UpdateExpr<Double> = SimpleExpr(MinusDependency(this.dependency, other.dependency))
-
-    operator fun Expr<Double>.minus(other: Double): UpdateExpr<Double> = minus(const(other))
-
-    operator fun Expr<Double>.times(other: Expr<Double>): UpdateExpr<Double> = SimpleExpr(TimesDependency(this.dependency, other.dependency))
-
-    operator fun Expr<Double>.times(other: Double): UpdateExpr<Double> = times(const(other))
-
-    operator fun Expr<Double>.div(other: Expr<Double>): UpdateExpr<Double> = SimpleExpr(DivDependency(this.dependency, other.dependency))
-
-    operator fun Expr<Double>.div(other: Double) = div(const(other))
-
-    fun min(sequence: Sequence<Expr<Double>>): UpdateExpr<Double> = SimpleExpr(MinDependency(sequence.map { it.dependency }))
-
-    fun max(sequence: Sequence<Expr<Double>>): UpdateExpr<Double> = SimpleExpr(MaxDependency(sequence.map { it.dependency }))
-
-    infix fun <T> Property<in T>.bind(expr: UpdateExpr<T>) {
-        SimpleExpr(PropertyDependency(expr.dependency, this))
     }
 
     abstract inner class ListExpr<T> internal constructor() : UpdateExpr<List<T>>() {
@@ -574,6 +554,9 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
         internal abstract val dependency: Dependency<T>
 
+        internal val system: FenjaSystem
+            get() = this@FenjaSystem
+
         infix fun <R> map(func: (T) -> R): UpdateEventStream<R> = SimpleEventStream(MapDependency(dependency, func))
 
         infix fun hold(initValue: T): UpdateExpr<T> = SimpleExpr(EventStreamHoldDependency(dependency, initValue))
@@ -601,6 +584,8 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
     infix fun ticker(duration: Duration): TickerEventStreamDelegateProvider {
         return TickerEventStreamDelegateProvider(duration)
     }
+
+    fun <T> never(): EventStream<T> = SimpleEventStream(NoDependency())
 
     inner class TickerEventStreamDelegateProvider(private val duration: Duration) {
 
@@ -642,8 +627,36 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     }
 
-    infix fun <T> Property<in T>.bind(expr: UpdateEventStream<T>) {
-        SimpleEventStream(PropertyDependency(expr.dependency, this))
-    }
+}
 
+operator fun FenjaSystem.Expr<Boolean>.not(): FenjaSystem.UpdateExpr<Boolean> = system.SimpleExpr(NotDependency(dependency))
+
+infix fun FenjaSystem.Expr<Boolean>.and(other: FenjaSystem.Expr<Boolean>): FenjaSystem.UpdateExpr<Boolean> = system.SimpleExpr(AndDependency(this.dependency, other.dependency))
+
+infix fun FenjaSystem.Expr<Boolean>.or(other: FenjaSystem.Expr<Boolean>): FenjaSystem.UpdateExpr<Boolean> = system.SimpleExpr(OrDependency(this.dependency, other.dependency))
+
+operator fun FenjaSystem.Expr<Double>.unaryMinus(): FenjaSystem.UpdateExpr<Double> = system.SimpleExpr(NegDependency(dependency))
+
+operator fun FenjaSystem.Expr<Double>.plus(other: FenjaSystem.Expr<Double>): FenjaSystem.UpdateExpr<Double> = system.SimpleExpr(PlusDependency(this.dependency, other.dependency))
+
+operator fun FenjaSystem.Expr<Double>.plus(other: Double): FenjaSystem.UpdateExpr<Double> = plus(system.const(other))
+
+operator fun FenjaSystem.Expr<Double>.minus(other: FenjaSystem.Expr<Double>): FenjaSystem.UpdateExpr<Double> = system.SimpleExpr(MinusDependency(this.dependency, other.dependency))
+
+operator fun FenjaSystem.Expr<Double>.minus(other: Double): FenjaSystem.UpdateExpr<Double> = minus(system.const(other))
+
+operator fun FenjaSystem.Expr<Double>.times(other: FenjaSystem.Expr<Double>): FenjaSystem.UpdateExpr<Double> = system.SimpleExpr(TimesDependency(this.dependency, other.dependency))
+
+operator fun FenjaSystem.Expr<Double>.times(other: Double): FenjaSystem.UpdateExpr<Double> = times(system.const(other))
+
+operator fun FenjaSystem.Expr<Double>.div(other: FenjaSystem.Expr<Double>): FenjaSystem.UpdateExpr<Double> = system.SimpleExpr(DivDependency(this.dependency, other.dependency))
+
+operator fun FenjaSystem.Expr<Double>.div(other: Double) = div(system.const(other))
+
+infix fun <T> Property<in T>.bind(expr: FenjaSystem.Expr<T>) {
+    expr.system.SimpleExpr(PropertyDependency(expr.dependency, this))
+}
+
+infix fun <T> Property<in T>.bind(stream: FenjaSystem.EventStream<T>) {
+    stream.system.SimpleEventStream(PropertyDependency(stream.dependency, this))
 }
