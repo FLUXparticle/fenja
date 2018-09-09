@@ -199,22 +199,19 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
     operator fun <T> ObservableValue<T>.provideDelegate(thisRef: Any?, property: KProperty<*>): InputExprDelegate<T> {
         val inputExpr = createInputExpr<T>(property.name)
-        inputExpr.setValue(value)
-        addListener { _, _, newValue -> inputExpr.setValue(newValue) }
+        inputExpr.bind(this)
         return InputExprDelegate(inputExpr)
     }
 
     operator fun ReadOnlyDoubleProperty.provideDelegate(thisRef: Any?, property: KProperty<*>): InputExprDelegate<Double> {
         val inputExpr = createInputExpr<Double>(property.name)
-        inputExpr.setValue(value.toDouble())
-        addListener { _, _, newValue -> inputExpr.setValue(newValue.toDouble()) }
+        inputExpr.bind(this) { it.toDouble() }
         return InputExprDelegate(inputExpr)
     }
 
     operator fun ReadOnlyIntegerProperty.provideDelegate(thisRef: Any?, property: KProperty<*>): InputExprDelegate<Int> {
         val inputExpr = createInputExpr<Int>(property.name)
-        inputExpr.setValue(value.toInt())
-        addListener { _, _, newValue -> inputExpr.setValue(newValue.toInt()) }
+        inputExpr.bind(this) { it.toInt() }
         return InputExprDelegate(inputExpr)
     }
 
@@ -352,6 +349,16 @@ class FenjaSystem private constructor(private val logger: FenjaSystemLogger) {
 
         fun setValue(value: T) {
             dependency.executeUpdates(value)
+        }
+
+        infix fun bind(observable: ObservableValue<T>) {
+            setValue(observable.value)
+            observable.addListener { _, _, newValue -> setValue(newValue) }
+        }
+
+        fun <I> bind(observable: ObservableValue<I>, func: (I) -> T) {
+            setValue(func(observable.value))
+            observable.addListener { _, _, newValue -> setValue(func(newValue)) }
         }
 
     }
