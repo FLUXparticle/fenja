@@ -642,6 +642,14 @@ infix fun FenjaSystem.Expr<Boolean>.and(other: FenjaSystem.Expr<Boolean>): Fenja
 
 infix fun FenjaSystem.Expr<Boolean>.or(other: FenjaSystem.Expr<Boolean>): FenjaSystem.UpdateExpr<Boolean> = system.SimpleExpr(OrDependency(this.dependency, other.dependency))
 
+infix fun FenjaSystem.Expr<Double>.lessThan(other: FenjaSystem.Expr<Double>): FenjaSystem.UpdateExpr<Boolean> = system.SimpleExpr(CombineDependency2(this.dependency, other.dependency) { a, b -> a < b })
+
+infix fun FenjaSystem.Expr<Double>.lessThanOrEqual(other: FenjaSystem.Expr<Double>): FenjaSystem.UpdateExpr<Boolean> = system.SimpleExpr(CombineDependency2(this.dependency, other.dependency) { a, b -> a <= b })
+
+infix fun FenjaSystem.Expr<Double>.greaterThan(other: FenjaSystem.Expr<Double>): FenjaSystem.UpdateExpr<Boolean> = system.SimpleExpr(CombineDependency2(this.dependency, other.dependency) { a, b -> a > b })
+
+infix fun FenjaSystem.Expr<Double>.greaterThanOrEqual(other: FenjaSystem.Expr<Double>): FenjaSystem.UpdateExpr<Boolean> = system.SimpleExpr(CombineDependency2(this.dependency, other.dependency) { a, b -> a >= b })
+
 operator fun FenjaSystem.Expr<Double>.unaryMinus(): FenjaSystem.UpdateExpr<Double> = system.SimpleExpr(NegDependency(dependency))
 
 operator fun FenjaSystem.Expr<Double>.plus(other: FenjaSystem.Expr<Double>): FenjaSystem.UpdateExpr<Double> = system.SimpleExpr(PlusDependency(this.dependency, other.dependency))
